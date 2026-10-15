@@ -1,0 +1,24 @@
+{
+  "ticker": "LOGI",
+  "as_of": "2026-10-15",
+  "rule_id": "tone-delta-lead-v1",
+  "rule_check": {
+    "recorded": "5f3520c98c154a4d2dc5b0419f2561db0ad44cd21c33b7d489dc838a50a88b85",
+    "actual": "5f3520c98c154a4d2dc5b0419f2561db0ad44cd21c33b7d489dc838a50a88b85",
+    "matches": true,
+    "acknowledged_change": false
+  },
+  "eligible_quarters": 0,
+  "evaluated": 0,
+  "required": 8,
+  "insufficient": true,
+  "calls": 0,
+  "hits": 0,
+  "misses": 0,
+  "no_calls": 0,
+  "hit_rate": null,
+  "p_value_vs_50": null,
+  "persistence_hits_on_same_calls": 0,
+  "persistence_scored": 0,
+  "rows": []
+}

@@ -1,0 +1,24 @@
+{
+  "ticker": "NKE",
+  "name": "NIKE, Inc.",
+  "cik": "0000320187",
+  "fiscal_year_end": "0531",
+  "fiscal_calendar_note": "Fiscal year ends May 31; fiscal Q1 is June-August.",
+  "company_type": "manufacturer",
+  "segment_note": "Designs and markets footwear and apparel sold wholesale and direct (NIKE Direct). Amazon is one channel among many; check how much of the catalog Nike itself sells there before reading anything into tone.",
+  "amazon": {
+    "marketplace": "amazon.com",
+    "storefront_url": "TODO-confirm: the official Nike brand store URL on amazon.com",
+    "brand_query": "Nike",
+    "brand_names": ["Nike", "Jordan", "Converse"]
+  },
+  "sources": ["amazon_apify"],
+  "planned_sources": ["reddit", "app_store", "google_trends"],
+  "sec": {
+    "revenue_concepts": ["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "SalesRevenueNet"]
+  },
+  "references": [
+    {"fact": "Fiscal year ends May 31", "url": "https://www.sec.gov/Archives/edgar/data/320187/000032018719000051/nke-531201910k.htm", "checked": "2026-10-15 via web search (sec.gov blocked from the build environment)"},
+    {"fact": "SEC CIK 320187", "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320187", "checked": "2026-10-15 via web search"}
+  ]
+}

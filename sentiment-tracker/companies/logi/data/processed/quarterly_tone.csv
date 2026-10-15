@@ -1,0 +1,1 @@
+fiscal_quarter,source,quarter_start,quarter_end,n_reviews,n_products,mean_tone,share_negative,defect_rate,quality_decline_rate,price_rate,other_rate,n_seller_shipping_excluded,seller_shipping_share,baseline_prior4_mean,tone_delta,sparse_flag,coverage_flag,review_velocity_yoy,history_status

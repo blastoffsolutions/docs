@@ -1,0 +1,24 @@
+{
+  "ticker": "LOGI",
+  "name": "Logitech International S.A.",
+  "cik": "0001032975",
+  "fiscal_year_end": "0331",
+  "fiscal_calendar_note": "Fiscal year ends March 31. Interim quarters are generally thirteen-week periods ending on a Friday; Logitech presents them as ending on the last day of the calendar quarter, and this pipeline uses that presentation.",
+  "company_type": "manufacturer",
+  "segment_note": "Designs and sells peripherals (mice, keyboards, gaming, video collaboration, webcams, headsets) through retail, e-commerce (including Amazon) and distributors worldwide. Amazon US reviews cover only part of global sales.",
+  "amazon": {
+    "marketplace": "amazon.com",
+    "storefront_url": "TODO-confirm: the official Logitech brand store URL on amazon.com (amazon.com/stores/Logitech/...)",
+    "brand_query": "Logitech",
+    "brand_names": ["Logitech", "Logitech G", "Logi", "Logitech for Creators", "Blue Microphones"]
+  },
+  "sources": ["amazon_apify"],
+  "planned_sources": ["reddit", "app_store", "google_trends"],
+  "sec": {
+    "revenue_concepts": ["RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "SalesRevenueNet"]
+  },
+  "references": [
+    {"fact": "Fiscal year ends March 31; interim quarters are generally 13-week periods ending on a Friday, presented as ending on the last day of the calendar quarter", "url": "https://www.sec.gov/Archives/edgar/data/0001032975/000103297526000021/logi-20260331.htm", "checked": "2026-10-15 via web search (sec.gov blocked from the build environment)"},
+    {"fact": "SEC CIK 1032975", "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001032975", "checked": "2026-10-15 via web search"}
+  ]
+}

@@ -1,0 +1,1 @@
+source,review_id,product_id,parent_id,review_date,fiscal_quarter,rating,vader_compound,text_tone,star_tone,tone_raw,tone,tag_defect,tag_quality_decline,tag_price,tag_seller_shipping,tag_other,seller_shipping_only,model_version

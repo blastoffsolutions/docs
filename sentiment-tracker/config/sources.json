@@ -1,0 +1,24 @@
+{
+  "_note": "Shared settings for source adapters. Apify actor IDs and input keys are defaults to confirm on each actor's Input tab before a first run; output field spellings are normalised in scripts/sources/amazon_apify.py.",
+  "amazon_apify": {
+    "products_actor": "junglee/amazon-crawler",
+    "products_input": {
+      "categoryOrProductUrls": [{"url": "{storefront_url}"}],
+      "search": "{brand_query}",
+      "maxItemsPerStartUrl": "{max_items}",
+      "scrapeProductDetails": true,
+      "proxyCountry": "US"
+    },
+    "max_products": 200,
+    "reviews_actor": "junglee/amazon-reviews-scraper",
+    "reviews_input": {
+      "productUrls": [{"url": "{product_url}"}],
+      "maxReviews": "{max_reviews}",
+      "sort": "recent",
+      "includeGdprSensitive": false,
+      "proxyCountry": "US"
+    },
+    "max_reviews_per_product": 1000,
+    "timeout_s": 900
+  }
+}

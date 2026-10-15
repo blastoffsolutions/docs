@@ -1,0 +1,898 @@
+<title>Public Sentiment Tracker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@600;700;800&family=Saira:wght@400;500;600&display=swap">
+<style>
+/* Blastoffmax system applied to a research dashboard: one left-aligned column, summary (factor
+   panel) before detail (charts, backtest, coverage). Launch bar under every section title. */
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f5f8fa;
+  --panel: #ffffff;
+  --ink: #222222;
+  --display: #122232;
+  --muted: #4a6379;
+  --faint: #688197;
+  --border: #d8e1e8;
+  --border-strong: #b8c7d3;
+  --accent: #008cc7;
+  --accent-ink: #006590;
+  --accent-subtle: #e8f5fb;
+  --pos: #008cc7;
+  --neg: #d2403c;
+  --neutral-mark: #b8c7d3;
+  --ref: #688197;
+  --count: #66badd;
+  --grid: #ebf0f4;
+  --axis: #b8c7d3;
+  --good: #137a4c;
+  --good-subtle: #e6f6ee;
+  --warn: #8a5600;
+  --warn-mark: #dd8e1b;
+  --warn-subtle: #fbf2e2;
+  --bad: #b3302c;
+  --bad-subtle: #fbeaea;
+  --font-display: "Archivo Black", "Archivo", "Arial Black", system-ui, sans-serif;
+  --font-head: "Archivo", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-body: "Saira", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1620; --bg-subtle: #122232; --panel: #122232; --ink: #ebf0f4; --display: #ffffff;
+    --muted: #b8c7d3; --faint: #91a6b6; --border: rgba(255,255,255,0.14); --border-strong: rgba(255,255,255,0.26);
+    --accent: #1a9bd4; --accent-ink: #66badd; --accent-subtle: #00364d;
+    --pos: #1a9bd4; --neg: #e66767; --neutral-mark: #344b5f; --ref: #91a6b6; --count: #006590;
+    --grid: #1b3045; --axis: #344b5f;
+    --good: #4cc98e; --good-subtle: rgba(26,158,99,0.18); --warn: #f0b04a; --warn-mark: #dd8e1b; --warn-subtle: rgba(221,142,27,0.16);
+    --bad: #f08a88; --bad-subtle: rgba(210,64,60,0.2);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1620; --bg-subtle: #122232; --panel: #122232; --ink: #ebf0f4; --display: #ffffff;
+  --muted: #b8c7d3; --faint: #91a6b6; --border: rgba(255,255,255,0.14); --border-strong: rgba(255,255,255,0.26);
+  --accent: #1a9bd4; --accent-ink: #66badd; --accent-subtle: #00364d;
+  --pos: #1a9bd4; --neg: #e66767; --neutral-mark: #344b5f; --ref: #91a6b6; --count: #006590;
+  --grid: #1b3045; --axis: #344b5f;
+  --good: #4cc98e; --good-subtle: rgba(26,158,99,0.18); --warn: #f0b04a; --warn-mark: #dd8e1b; --warn-subtle: rgba(221,142,27,0.16);
+  --bad: #f08a88; --bad-subtle: rgba(210,64,60,0.2);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/1.55 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.app { max-width: 1160px; margin: 0 auto; display: grid; gap: 44px; }
+a { color: var(--accent-ink); text-underline-offset: 2px; }
+a:hover { color: var(--accent); }
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.86em; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 4px; overflow-wrap: anywhere; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* header */
+.top { display: grid; gap: 14px; }
+.eyebrow { font: 700 12px/1 var(--font-head); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-ink); }
+.title-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 24px; }
+h1 { margin: 0; font: 400 clamp(28px, 5vw, 44px)/0.98 var(--font-display); text-transform: uppercase; color: var(--display); letter-spacing: 0.01em; text-wrap: balance; min-width: 0; }
+.title-block { display: grid; gap: 14px; min-width: 0; }
+.launch-bar { height: 6px; width: 72px; background: var(--accent); border-radius: 1px; }
+.sub { margin: 0; color: var(--muted); max-width: 70ch; }
+.picker { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border-strong); border-radius: var(--radius-md); overflow: hidden; }
+.picker button {
+  font: 600 13px/1 var(--font-head); letter-spacing: 0.04em; text-transform: uppercase;
+  background: var(--panel); color: var(--muted); border: 0; padding: 10px 14px; cursor: pointer;
+  border-right: 1px solid var(--border); transition: background 120ms var(--ease), color 120ms var(--ease);
+}
+.picker button:last-child { border-right: 0; }
+.picker button:hover { background: var(--accent-subtle); color: var(--display); }
+.picker button[aria-selected="true"] { background: var(--display); color: var(--bg); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px;
+  font: 600 12px/1.4 var(--font-head); letter-spacing: 0.02em; border: 1px solid var(--border); color: var(--muted); background: var(--panel);
+  white-space: nowrap;
+}
+.chip svg { width: 12px; height: 12px; flex: none; }
+.chip.good { color: var(--good); background: var(--good-subtle); border-color: transparent; }
+.chip.warn { color: var(--warn); background: var(--warn-subtle); border-color: transparent; }
+.chip.bad { color: var(--bad); background: var(--bad-subtle); border-color: transparent; }
+.chip.accent { color: var(--accent-ink); background: var(--accent-subtle); border-color: transparent; }
+
+.banner {
+  display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: var(--radius-md);
+  background: var(--warn-subtle); color: var(--ink); border: 1px solid color-mix(in srgb, var(--warn-mark) 45%, transparent);
+}
+.banner svg { width: 20px; height: 20px; color: var(--warn); flex: none; margin-top: 2px; }
+.banner strong { color: var(--warn); font-family: var(--font-head); letter-spacing: 0.02em; }
+.banner p { margin: 0; max-width: 85ch; }
+
+/* sections */
+section { display: grid; gap: 16px; min-width: 0; }
+.app > *, section > *, #bt-body, #revenue-table { min-width: 0; }
+.sec-head { display: grid; gap: 8px; }
+h2 { margin: 0; font: 800 20px/1.15 var(--font-head); text-transform: uppercase; letter-spacing: 0.02em; color: var(--display); }
+.sec-head .launch-bar { width: 40px; height: 4px; }
+.lede { margin: 0; color: var(--muted); max-width: 72ch; }
+h3 { margin: 8px 0 0; font: 700 15px/1.3 var(--font-head); color: var(--display); }
+
+/* factor tiles */
+.groups { display: grid; gap: 12px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; }
+.tile-group { font: 700 10.5px/1 var(--font-head); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-ink); }
+.planned-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-subtle); font-size: 13px; color: var(--muted); }
+.planned-strip strong { font: 700 12px/1.3 var(--font-head); letter-spacing: 0.04em; text-transform: uppercase; color: var(--display); margin-right: 4px; }
+.tile {
+  display: grid; grid-template-rows: auto auto auto 1fr auto; gap: 6px; padding: 14px 14px 12px; min-width: 0;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.tile.planned, .tile.empty { background: var(--bg-subtle); }
+.tile-label { font: 600 13px/1.3 var(--font-head); color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.tile-label span:last-child { color: var(--faint); font-weight: 600; font-size: 12px; }
+.tile-value { font: 600 26px/1.1 var(--font-body); color: var(--display); }
+.tile.planned .tile-value, .tile.empty .tile-value { font-size: 16px; color: var(--faint); padding-top: 6px; }
+.tile-desc { font-size: 12.5px; line-height: 1.45; color: var(--faint); }
+.tile-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; min-height: 26px; }
+.spark { width: 96px; height: 26px; flex: none; }
+
+/* charts */
+.chart-card:has(> .empty-state) { border: 0; padding: 0; background: none; }
+.chart-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px 16px 10px; min-width: 0; position: relative; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+.legend i { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.key-line { width: 16px; height: 2px; border-radius: 1px; }
+.key-dot { width: 10px; height: 10px; border-radius: 50%; }
+.key-ring { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--pos); }
+.key-sq { width: 10px; height: 10px; border-radius: 2px; }
+.panel-label { font: 600 12px/1.3 var(--font-head); color: var(--muted); margin: 6px 0 0; }
+svg.plot { display: block; width: 100%; height: auto; overflow: visible; }
+svg.plot text { font-family: var(--font-body); font-size: 11px; fill: var(--faint); }
+svg.plot .grid { stroke: var(--grid); stroke-width: 1; }
+svg.plot .axis { stroke: var(--axis); stroke-width: 1; }
+svg.plot .ref { stroke: var(--ref); stroke-width: 1; }
+.tooltip {
+  position: absolute; pointer-events: none; z-index: 5; min-width: 170px; max-width: 260px;
+  background: var(--display); color: var(--bg); border-radius: var(--radius-md); padding: 10px 12px;
+  font-size: 12.5px; line-height: 1.45; box-shadow: 0 2px 4px rgba(18,34,50,0.08), 0 12px 28px rgba(18,34,50,0.18);
+}
+.tooltip b { font-family: var(--font-head); display: block; margin-bottom: 4px; }
+.tooltip .row { display: flex; justify-content: space-between; gap: 14px; }
+.tooltip .row span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
+.empty-state { display: grid; gap: 6px; padding: 28px 20px; text-align: left; border: 1px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--bg-subtle); }
+.empty-state strong { font-family: var(--font-head); color: var(--display); }
+.empty-state p { margin: 0; color: var(--muted); max-width: 70ch; }
+
+details.table-view summary { cursor: pointer; font: 600 13px/1.4 var(--font-head); color: var(--accent-ink); padding: 6px 0; }
+details.table-view summary:hover { color: var(--accent); }
+
+/* tables */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--panel); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { font: 700 11px/1.3 var(--font-head); letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); background: var(--bg-subtle); }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: 0; }
+
+/* backtest */
+.rule { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px 18px; display: grid; gap: 10px; }
+.rule-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.rule-head strong { font: 700 14px/1.3 var(--font-head); color: var(--display); }
+.rule dl { margin: 0; display: grid; grid-template-columns: minmax(110px, max-content) 1fr; gap: 6px 16px; }
+.rule dt { font: 700 11px/1.6 var(--font-head); letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+.rule dd { margin: 0; min-width: 0; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.stat { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--panel); }
+.stat .k { font: 600 12px/1.3 var(--font-head); color: var(--muted); }
+.stat .v { font: 600 24px/1.2 var(--font-body); color: var(--display); }
+.stat .n { font-size: 12px; color: var(--faint); }
+.note { margin: 0; font-size: 13px; color: var(--muted); max-width: 80ch; }
+
+/* coverage */
+.cov { display: grid; gap: 8px; }
+.cov-row { display: grid; grid-template-columns: 120px 1fr; align-items: center; gap: 12px; }
+.cov-name { font: 600 12px/1.2 var(--font-head); color: var(--muted); overflow-wrap: anywhere; }
+.cov-cells { display: flex; gap: 2px; flex-wrap: wrap; }
+.cov-cell { width: 22px; height: 22px; border-radius: 3px; }
+.st-ok { background: var(--pos); }
+.st-no_baseline { background: color-mix(in srgb, var(--pos) 40%, var(--panel)); }
+.st-sparse { background: var(--warn-mark); }
+.st-truncated { background: var(--ref); }
+.st-partial_quarter { background: var(--panel); box-shadow: inset 0 0 0 2px var(--pos); }
+.sources { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.source { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--panel); display: grid; gap: 6px; }
+.source.planned { background: var(--bg-subtle); }
+.source-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.source-head strong { font: 700 14px/1.2 var(--font-head); color: var(--display); }
+.source p { margin: 0; font-size: 13px; color: var(--muted); }
+
+.method { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+.method ul { margin: 0; padding-left: 18px; display: grid; gap: 8px; color: var(--ink); }
+.method li { max-width: 70ch; }
+.method p { margin: 0 0 10px; max-width: 70ch; }
+footer { border-top: 1px solid var(--border); padding-top: 16px; color: var(--faint); font-size: 12.5px; display: grid; gap: 4px; }
+
+@media (max-width: 560px) {
+  .cov-row { grid-template-columns: 1fr; gap: 4px; }
+  .rule dl { grid-template-columns: 1fr; gap: 2px; }
+  .rule dd { margin-bottom: 6px; }
+  .tile-value { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="eyebrow">Public sentiment tracker · research only</div>
+    <div class="title-row">
+      <div class="title-block"><h1 id="co-name">Loading</h1><div class="launch-bar" aria-hidden="true"></div></div>
+      <div class="picker" role="tablist" aria-label="Company" id="picker"></div>
+    </div>
+    <p class="sub" id="co-sub"></p>
+    <div class="chips" id="co-chips"></div>
+  </header>
+
+  <div class="banner" id="synthetic-banner" role="note" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+    <p><strong>SYNTHETIC SAMPLE.</strong> Sample Co is a fictional company. Its reviews and revenue were generated by <code>scripts/synthetic.py</code> to show every part of this page working. Nothing here says whether review tone predicts anything. Pick LOGI or NKE above to see the real pipeline's state.</p>
+  </div>
+
+  <section id="factors" aria-labelledby="h-factors">
+    <div class="sec-head">
+      <h2 id="h-factors">Factor panel</h2>
+      <div class="launch-bar" aria-hidden="true"></div>
+      <p class="lede">Each signal's latest usable quarter, compared with the company's own previous four quarters. A chip like <b>+1.8σ</b> means that many standard deviations from its recent norm.</p>
+    </div>
+    <div class="groups" id="factor-groups"></div>
+  </section>
+
+  <section id="tone" aria-labelledby="h-tone">
+    <div class="sec-head">
+      <h2 id="h-tone">Review tone by fiscal quarter</h2>
+      <div class="launch-bar" aria-hidden="true"></div>
+      <p class="lede">Mean tone of product reviews on a −2 to +2 scale, against the mean of the previous four quarters. Reviews only about shipping or the seller are left out.</p>
+    </div>
+    <div class="chart-card" id="chart-tone"></div>
+    <details class="table-view"><summary>Show tone data as a table</summary><div class="table-wrap" id="table-tone"></div></details>
+  </section>
+
+  <section id="lead" aria-labelledby="h-lead">
+    <div class="sec-head">
+      <h2 id="h-lead">Does tone lead revenue?</h2>
+      <div class="launch-bar" aria-hidden="true"></div>
+      <p class="lede">Top: how far each quarter's tone moved from its baseline. Bottom: what happened next, the change in SEC-reported revenue growth from that quarter to the following one. The question is whether red bars on top line up with red bars underneath.</p>
+    </div>
+    <div class="chart-card" id="chart-lead"></div>
+  </section>
+
+  <section id="backtest" aria-labelledby="h-bt">
+    <div class="sec-head">
+      <h2 id="h-bt">Backtest</h2>
+      <div class="launch-bar" aria-hidden="true"></div>
+      <p class="lede">The rule was written down and hashed before any data was collected. Results come after it, misses included.</p>
+    </div>
+    <div class="rule" id="rule"></div>
+    <div id="bt-body"></div>
+  </section>
+
+  <section id="coverage" aria-labelledby="h-cov">
+    <div class="sec-head">
+      <h2 id="h-cov">Coverage and sources</h2>
+      <div class="launch-bar" aria-hidden="true"></div>
+      <p class="lede">Which quarters are usable, where every number comes from, and which channels are still to be added.</p>
+    </div>
+    <div class="chart-card" id="coverage-grid"></div>
+    <div class="sources" id="sources"></div>
+    <h3>SEC-reported revenue</h3>
+    <div id="revenue-table"></div>
+  </section>
+
+  <section id="method" aria-labelledby="h-method">
+    <div class="sec-head">
+      <h2 id="h-method">Method and limitations</h2>
+      <div class="launch-bar" aria-hidden="true"></div>
+    </div>
+    <div class="method">
+      <div id="method-text"></div>
+      <div><h3 style="margin-top:0">Limitations</h3><ul id="limits"></ul></div>
+    </div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+
+<script id="dashboard-data" type="application/json">{"generated_at":"2026-10-15T17:44:17+00:00","as_of":"2026-10-15","model":{"version":"tone-v1","frozen_at":"2026-10-15","frozen_sha256":"5f3520c98c154a4d2dc5b0419f2561db0ad44cd21c33b7d489dc838a50a88b85","description":"Deterministic tone score on a -2..+2 integer scale. Text tone from VADER (title + body) is blended with the star rating; both components are kept in tone_scores.csv.","sparse_min_reviews":30,"sparse_min_products":3},"rule":{"id":"tone-delta-lead-v1","question":"Does a quarter's Amazon review tone, relative to its own recent history, lead the next quarter's change in SEC-reported revenue growth?","signal":"composite_tone_delta[q] = mean over eligible sources of (mean_tone[q] - mean(mean_tone[q-4..q-1]))","eligible_quarter":"non-sparse, coverage complete, prior-4-quarter baseline present (thresholds in 'aggregation')","call":{"DOWN":"composite_tone_delta <= -0.15","UP":"composite_tone_delta >= +0.15","NO CALL":"otherwise"},"down_threshold":-0.15,"up_threshold":0.15,"primary_target":"sign(revenue_yoy[q+1] - revenue_yoy[q]); DOWN is a hit if negative, UP is a hit if positive, exactly zero is a miss","secondary_target":"nowcast sign(revenue_yoy[q] - revenue_yoy[q-1]); reported only, never counted","revenue_source":"SEC EDGAR XBRL companyfacts, first-filed value per fiscal quarter; fiscal Q4 = annual 10-K value minus Q1..Q3 10-Q values","holdout_quarters":8,"holdout_selection":"the 8 most recent eligible quarters whose q+1 revenue has been filed with the SEC","baselines_for_comparison":["coin flip (50%)","persistence: predict sign(revenue_yoy[q-1] - revenue_yoy[q-2]), the last acceleration known when quarter q ends"],"statistics":"hit rate on calls; one-sided exact binomial p-value against 50%; with at most 8 quarters this has almost no statistical power and is reported as such","no_fitting":"Thresholds were fixed before any data was collected. Nothing is estimated from the holdout quarters."},"limitations":["**Review history is capped.** Amazon shows logged-out visitors a limited, sorted slice of","**Most-recent sort bias.** Collecting \"most recent\" reviews over-weights the latest quarters","**Catalog survivorship.** Discontinued products drop off the storefront, so past quarters","**Product mix shifts.** A launch or a discontinuation changes which products are reviewed;","**Amazon US is one channel.** It is a slice of global revenue whose size most companies","**Fake and incentivised reviews** exist and are not filtered beyond Amazon's own policing.","**The tone model is a lexicon (VADER) plus stars.** It misses sarcasm and domain language;","**Small samples.** Eight held-out quarters cannot establish that the signal works. Treat","**Revenue timing.** Fiscal Q4 is derived (annual minus Q1-Q3). 52/53-week calendars are"],"companies":[{"ticker":"LOGI","name":"Logitech International S.A.","synthetic":false,"company_type":"manufacturer","fit_note":"Good fit: the company makes the products being reviewed, so review tone speaks to its own quality and demand. Watch how much of revenue runs through Amazon US.","fiscal_year_end":"0331","fiscal_calendar_note":"Fiscal year ends March 31. Interim quarters are generally thirteen-week periods ending on a Friday; Logitech presents them as ending on the last day of the calendar quarter, and this pipeline uses that presentation.","segment_note":"Designs and sells peripherals (mice, keyboards, gaming, video collaboration, webcams, headsets) through retail, e-commerce (including Amazon) and distributors worldwide. Amazon US reviews cover only part of global sales.","storefront_url":"TODO-confirm: the official Logitech brand store URL on amazon.com (amazon.com/stores/Logitech/...)","verified":false,"references":[{"fact":"Fiscal year ends March 31; interim quarters are generally 13-week periods ending on a Friday, presented as ending on the last day of the calendar quarter","url":"https://www.sec.gov/Archives/edgar/data/0001032975/000103297526000021/logi-20260331.htm","checked":"2026-10-15 via web search (sec.gov blocked from the build environment)"},{"fact":"SEC CIK 1032975","url":"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001032975","checked":"2026-10-15 via web search"}],"status":{"quarters_on_file":0,"usable_quarters":0,"required_quarters":12,"insufficient":true,"label":"INSUFFICIENT HISTORY: 0 of 12 usable quarters","reviews_scored":0,"products":0,"revenue_quarters":0,"last_fetch":null},"sources":[{"name":"amazon_apify","status":"active","description":"Amazon US product catalog and customer reviews, collected through Apify actors."},{"name":"reddit","status":"planned","description":"Brand and product subreddits via the official Reddit Data API (OAuth). Early defect chatter and enthusiast sentiment."},{"name":"app_store","status":"planned","description":"Apple App Store / Google Play reviews of the company's apps. Matters most for DTC brands and retailers."},{"name":"google_trends","status":"planned","description":"Search interest for brand and flagship product names. A demand-side signal, not tone."}],"coverage":{},"quarters":[],"revenue":[],"joined":[],"factors_latest":[{"ticker":"LOGI","fiscal_quarter":null,"factor":"product_tone","label":"Product tone","group":"Reviews","value":null,"zscore":null,"status":"not_collected","unit":"score","better":"higher","description":"Mean review tone on a -2..+2 scale; seller/shipping-only reviews excluded."},{"ticker":"LOGI","fiscal_quarter":null,"factor":"tone_delta","label":"Tone vs. own baseline","group":"Reviews","value":null,"zscore":null,"status":"not_collected","unit":"score","better":"higher","description":"This quarter's tone minus the mean of the prior four quarters. The pre-registered signal."},{"ticker":"LOGI","fiscal_quarter":null,"factor":"review_velocity","label":"Review velocity","group":"Demand","value":null,"zscore":null,"status":"not_collected","unit":"pct","better":"higher","description":"Review count vs. the same quarter a year earlier. A rough proxy for units sold."},{"ticker":"LOGI","fiscal_quarter":null,"factor":"defect_rate","label":"Defect mentions","group":"Quality","value":null,"zscore":null,"status":"not_collected","unit":"pct","better":"lower","description":"Share of reviews describing failures: stopped working, broke, defective, disconnects."},{"ticker":"LOGI","fiscal_quarter":null,"factor":"quality_decline_rate","label":"Quality-decline mentions","group":"Quality","value":null,"zscore":null,"status":"not_collected","unit":"pct","better":"lower","description":"Share of reviews comparing unfavourably with an earlier version or model."},{"ticker":"LOGI","fiscal_quarter":null,"factor":"price_rate","label":"Price mentions","group":"Value","value":null,"zscore":null,"status":"not_collected","unit":"pct","better":"neutral","description":"Share of reviews that talk about price or value, for better or worse."},{"ticker":"LOGI","fiscal_quarter":null,"factor":"seller_shipping_share","label":"Seller/shipping complaints","group":"Channel","value":null,"zscore":null,"status":"not_collected","unit":"pct","better":"lower","description":"Share of reviews only about delivery, packaging or the seller."},{"ticker":"LOGI","fiscal_quarter":null,"factor":"revenue_yoy","label":"Revenue growth","group":"Financials","value":null,"zscore":null,"status":"not_collected","unit":"pct","better":"higher","description":"SEC-reported revenue vs. the same fiscal quarter a year earlier."},{"ticker":"LOGI","fiscal_quarter":null,"factor":"revenue_accel","label":"Revenue growth acceleration","group":"Financials","value":null,"zscore":null,"status":"not_collected","unit":"pts","better":"higher","description":"Change in YoY growth from the previous quarter."},{"ticker":"LOGI","fiscal_quarter":null,"factor":"reddit_tone","label":"Reddit tone","group":"Community","value":null,"zscore":null,"status":"planned","unit":null,"better":null,"description":"Tone of brand and product posts and comments. Planned source: reddit."},{"ticker":"LOGI","fiscal_quarter":null,"factor":"reddit_volume","label":"Reddit mention volume","group":"Community","value":null,"zscore":null,"status":"planned","unit":null,"better":null,"description":"Posts and comments mentioning the brand or flagship products. Planned source: reddit."},{"ticker":"LOGI","fiscal_quarter":null,"factor":"search_interest","label":"Search interest","group":"Demand","value":null,"zscore":null,"status":"planned","unit":null,"better":null,"description":"Google Trends interest for brand and flagship products. Planned source: google_trends."},{"ticker":"LOGI","fiscal_quarter":null,"factor":"app_rating","label":"App-store rating","group":"Experience","value":null,"zscore":null,"status":"planned","unit":null,"better":null,"description":"Average new rating of the company's apps. Planned source: app_store."}],"factor_series":{},"backtest":{"ticker":"LOGI","as_of":"2026-10-15","rule_id":"tone-delta-lead-v1","rule_check":{"recorded":"5f3520c98c154a4d2dc5b0419f2561db0ad44cd21c33b7d489dc838a50a88b85","actual":"5f3520c98c154a4d2dc5b0419f2561db0ad44cd21c33b7d489dc838a50a88b85","matches":true,"acknowledged_change":false},"eligible_quarters":0,"evaluated":0,"required":8,"insufficient":true,"calls":0,"hits":0,"misses":0,"no_calls":0,"hit_rate":null,"p_value_vs_50":null,"persistence_hits_on_same_calls":0,"persistence_scored":0,"rows":[]}},{"ticker":"NKE","name":"NIKE, Inc.","synthetic":false,"company_type":"manufacturer","fit_note":"Good fit: the company makes the products being reviewed, so review tone speaks to its own quality and demand. Watch how much of revenue runs through Amazon US.","fiscal_year_end":"0531","fiscal_calendar_note":"Fiscal year ends May 31; fiscal Q1 is June-August.","segment_note":"Designs and markets footwear and apparel sold wholesale and direct (NIKE Direct). Amazon is one channel among many; check how much of the catalog Nike itself sells there before reading anything into tone.","storefront_url":"TODO-confirm: the official Nike brand store URL on amazon.com","verified":false,"references":[{"fact":"Fiscal year ends May 31","url":"https://www.sec.gov/Archives/edgar/data/320187/000032018719000051/nke-531201910k.htm","checked":"2026-10-15 via web search (sec.gov blocked from the build environment)"},{"fact":"SEC CIK 320187","url":"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320187","checked":"2026-10-15 via web search"}],"status":{"quarters_on_file":0,"usable_quarters":0,"required_quarters":12,"insufficient":true,"label":"INSUFFICIENT HISTORY: 0 of 12 usable quarters","reviews_scored":0,"products":0,"revenue_quarters":0,"last_fetch":null},"sources":[{"name":"amazon_apify","status":"active","description":"Amazon US product catalog and customer reviews, collected through Apify actors."},{"name":"reddit","status":"planned","description":"Brand and product subreddits via the official Reddit Data API (OAuth). Early defect chatter and enthusiast sentiment."},{"name":"app_store","status":"planned","description":"Apple App Store / Google Play reviews of the company's apps. Matters most for DTC brands and retailers."},{"name":"google_trends","status":"planned","description":"Search interest for brand and flagship product names. A demand-side signal, not tone."}],"coverage":{},"quarters":[],"revenue":[],"joined":[],"factors_latest":[{"ticker":"NKE","fiscal_quarter":null,"factor":"product_tone","label":"Product tone","group":"Reviews","value":null,"zscore":null,"status":"not_collected","unit":"score","better":"higher","description":"Mean review tone on a -2..+2 scale; seller/shipping-only reviews excluded."},{"ticker":"NKE","fiscal_quarter":null,"factor":"tone_delta","label":"Tone vs. own baseline","group":"Reviews","value":null,"zscore":null,"status":"not_collected","unit":"score","better":"higher","description":"This quarter's tone minus the mean of the prior four quarters. The pre-registered signal."},{"ticker":"NKE","fiscal_quarter":null,"factor":"review_velocity","label":"Review velocity","group":"Demand","value":null,"zscore":null,"status":"not_collected","unit":"pct","better":"higher","description":"Review count vs. the same quarter a year earlier. A rough proxy for units sold."},{"ticker":"NKE","fiscal_quarter":null,"factor":"defect_rate","label":"Defect mentions","group":"Quality","value":null,"zscore":null,"status":"not_collected","unit":"pct","better":"lower","description":"Share of reviews describing failures: stopped working, broke, defective, disconnects."},{"ticker":"NKE","fiscal_quarter":null,"factor":"quality_decline_rate","label":"Quality-decline mentions","group":"Quality","value":null,"zscore":null,"status":"not_collected","unit":"pct","better":"lower","description":"Share of reviews comparing unfavourably with an earlier version or model."},{"ticker":"NKE","fiscal_quarter":null,"factor":"price_rate","label":"Price mentions","group":"Value","value":null,"zscore":null,"status":"not_collected","unit":"pct","better":"neutral","description":"Share of reviews that talk about price or value, for better or worse."},{"ticker":"NKE","fiscal_quarter":null,"factor":"seller_shipping_share","label":"Seller/shipping complaints","group":"Channel","value":null,"zscore":null,"status":"not_collected","unit":"pct","better":"lower","description":"Share of reviews only about delivery, packaging or the seller."},{"ticker":"NKE","fiscal_quarter":null,"factor":"revenue_yoy","label":"Revenue growth","group":"Financials","value":null,"zscore":null,"status":"not_collected","unit":"pct","better":"higher","description":"SEC-reported revenue vs. the same fiscal quarter a year earlier."},{"ticker":"NKE","fiscal_quarter":null,"factor":"revenue_accel","label":"Revenue growth acceleration","group":"Financials","value":null,"zscore":null,"status":"not_collected","unit":"pts","better":"higher","description":"Change in YoY growth from the previous quarter."},{"ticker":"NKE","fiscal_quarter":null,"factor":"reddit_tone","label":"Reddit tone","group":"Community","value":null,"zscore":null,"status":"planned","unit":null,"better":null,"description":"Tone of brand and product posts and comments. Planned source: reddit."},{"ticker":"NKE","fiscal_quarter":null,"factor":"reddit_volume","label":"Reddit mention volume","group":"Community","value":null,"zscore":null,"status":"planned","unit":null,"better":null,"description":"Posts and comments mentioning the brand or flagship products. Planned source: reddit."},{"ticker":"NKE","fiscal_quarter":null,"factor":"search_interest","label":"Search interest","group":"Demand","value":null,"zscore":null,"status":"planned","unit":null,"better":null,"description":"Google Trends interest for brand and flagship products. Planned source: google_trends."},{"ticker":"NKE","fiscal_quarter":null,"factor":"app_rating","label":"App-store rating","group":"Experience","value":null,"zscore":null,"status":"planned","unit":null,"better":null,"description":"Average new rating of the company's apps. Planned source: app_store."}],"factor_series":{},"backtest":{"ticker":"NKE","as_of":"2026-10-15","rule_id":"tone-delta-lead-v1","rule_check":{"recorded":"5f3520c98c154a4d2dc5b0419f2561db0ad44cd21c33b7d489dc838a50a88b85","actual":"5f3520c98c154a4d2dc5b0419f2561db0ad44cd21c33b7d489dc838a50a88b85","matches":true,"acknowledged_change":false},"eligible_quarters":0,"evaluated":0,"required":8,"insufficient":true,"calls":0,"hits":0,"misses":0,"no_calls":0,"hit_rate":null,"p_value_vs_50":null,"persistence_hits_on_same_calls":0,"persistence_scored":0,"rows":[]}}],"sample":{"ticker":"SAMPLE","name":"Sample Co (synthetic)","synthetic":true,"company_type":"manufacturer","fit_note":"Good fit: the company makes the products being reviewed, so review tone speaks to its own quality and demand. Watch how much of revenue runs through Amazon US.","fiscal_year_end":"0630","fiscal_calendar_note":"Fictional company; fiscal year ends June 30.","segment_note":"Synthetic data generated by scripts/synthetic.py to preview the dashboard. Not a real company.","storefront_url":"https://example.invalid","verified":false,"references":[],"status":{"quarters_on_file":16,"usable_quarters":13,"required_quarters":12,"insufficient":false,"label":"13 usable quarters (requirement of 12 met)","reviews_scored":1650,"products":6,"revenue_quarters":26,"last_fetch":"2026-02-20"},"sources":[{"name":"amazon_apify","status":"active","description":"Amazon US product catalog and customer reviews, collected through Apify actors."},{"name":"reddit","status":"planned","description":"Brand and product subreddits via the official Reddit Data API (OAuth). Early defect chatter and enthusiast sentiment."},{"name":"app_store","status":"planned","description":"Apple App Store / Google Play reviews of the company's apps. Matters most for DTC brands and retailers."},{"name":"google_trends","status":"planned","description":"Search interest for brand and flagship product names. A demand-side signal, not tone."}],"coverage":{"amazon_apify":[{"fiscal_quarter":"FY2022Q4","history_status":"truncated","n_reviews":62},{"fiscal_quarter":"FY2023Q1","history_status":"sparse","n_reviews":14},{"fiscal_quarter":"FY2023Q2","history_status":"no_baseline","n_reviews":96},{"fiscal_quarter":"FY2023Q3","history_status":"no_baseline","n_reviews":96},{"fiscal_quarter":"FY2023Q4","history_status":"no_baseline","n_reviews":91},{"fiscal_quarter":"FY2024Q1","history_status":"no_baseline","n_reviews":106},{"fiscal_quarter":"FY2024Q2","history_status":"ok","n_reviews":112},{"fiscal_quarter":"FY2024Q3","history_status":"ok","n_reviews":115},{"fiscal_quarter":"FY2024Q4","history_status":"ok","n_reviews":106},{"fiscal_quarter":"FY2025Q1","history_status":"ok","n_reviews":109},{"fiscal_quarter":"FY2025Q2","history_status":"ok","n_reviews":126},{"fiscal_quarter":"FY2025Q3","history_status":"ok","n_reviews":135},{"fiscal_quarter":"FY2025Q4","history_status":"ok","n_reviews":118},{"fiscal_quarter":"FY2026Q1","history_status":"ok","n_reviews":115},{"fiscal_quarter":"FY2026Q2","history_status":"ok","n_reviews":131},{"fiscal_quarter":"FY2026Q3","history_status":"partial_quarter","n_reviews":42}]},"quarters":[{"fiscal_quarter":"FY2022Q4","n_sources":1,"n_reviews":62,"composite_mean_tone":1.29032,"composite_tone_delta":null,"eligible":false,"defect_rate":0.0322581,"quality_decline_rate":0.0483871,"price_rate":0.209677,"seller_shipping_share":0.0461538,"review_velocity_yoy":null,"history_status":"truncated"},{"fiscal_quarter":"FY2023Q1","n_sources":1,"n_reviews":14,"composite_mean_tone":0.857143,"composite_tone_delta":null,"eligible":false,"defect_rate":0.0714286,"quality_decline_rate":0.0714286,"price_rate":0.142857,"seller_shipping_share":0.0,"review_velocity_yoy":null,"history_status":"sparse"},{"fiscal_quarter":"FY2023Q2","n_sources":1,"n_reviews":96,"composite_mean_tone":1.29167,"composite_tone_delta":null,"eligible":false,"defect_rate":0.0208333,"quality_decline_rate":0.0520833,"price_rate":0.1875,"seller_shipping_share":0.0,"review_velocity_yoy":null,"history_status":"no_baseline"},{"fiscal_quarter":"FY2023Q3","n_sources":1,"n_reviews":96,"composite_mean_tone":1.15625,"composite_tone_delta":null,"eligible":false,"defect_rate":0.03125,"quality_decline_rate":0.0625,"price_rate":0.145833,"seller_shipping_share":0.0769231,"review_velocity_yoy":null,"history_status":"no_baseline"},{"fiscal_quarter":"FY2023Q4","n_sources":1,"n_reviews":91,"composite_mean_tone":1.04396,"composite_tone_delta":null,"eligible":false,"defect_rate":0.043956,"quality_decline_rate":0.09890110000000002,"price_rate":0.131868,"seller_shipping_share":0.0808081,"review_velocity_yoy":null,"history_status":"no_baseline"},{"fiscal_quarter":"FY2024Q1","n_sources":1,"n_reviews":106,"composite_mean_tone":1.4622600000000001,"composite_tone_delta":null,"eligible":false,"defect_rate":0.00943396,"quality_decline_rate":0.028301899999999998,"price_rate":0.150943,"seller_shipping_share":0.0363636,"review_velocity_yoy":null,"history_status":"no_baseline"},{"fiscal_quarter":"FY2024Q2","n_sources":1,"n_reviews":112,"composite_mean_tone":1.27679,"composite_tone_delta":0.0382515,"eligible":true,"defect_rate":0.0357143,"quality_decline_rate":0.0625,"price_rate":0.151786,"seller_shipping_share":0.0508475,"review_velocity_yoy":0.166667,"history_status":"ok"},{"fiscal_quarter":"FY2024Q3","n_sources":1,"n_reviews":115,"composite_mean_tone":-0.0869565,"composite_tone_delta":-1.32177,"eligible":true,"defect_rate":0.191304,"quality_decline_rate":0.234783,"price_rate":0.217391,"seller_shipping_share":0.0495868,"review_velocity_yoy":0.197917,"history_status":"ok"},{"fiscal_quarter":"FY2024Q4","n_sources":1,"n_reviews":106,"composite_mean_tone":0.7264149999999999,"composite_tone_delta":-0.197597,"eligible":true,"defect_rate":0.09433960000000001,"quality_decline_rate":0.0754717,"price_rate":0.141509,"seller_shipping_share":0.0275229,"review_velocity_yoy":0.164835,"history_status":"ok"},{"fiscal_quarter":"FY2025Q1","n_sources":1,"n_reviews":109,"composite_mean_tone":1.4036700000000002,"composite_tone_delta":0.559043,"eligible":true,"defect_rate":0.027522899999999996,"quality_decline_rate":0.0183486,"price_rate":0.155963,"seller_shipping_share":0.0438596,"review_velocity_yoy":0.0283019,"history_status":"ok"},{"fiscal_quarter":"FY2025Q2","n_sources":1,"n_reviews":126,"composite_mean_tone":1.7381,"composite_tone_delta":0.908117,"eligible":true,"defect_rate":0.00793651,"quality_decline_rate":0.0,"price_rate":0.0873016,"seller_shipping_share":0.0381679,"review_velocity_yoy":0.125,"history_status":"ok"},{"fiscal_quarter":"FY2025Q3","n_sources":1,"n_reviews":135,"composite_mean_tone":1.58519,"composite_tone_delta":0.639879,"eligible":true,"defect_rate":0.0148148,"quality_decline_rate":0.0222222,"price_rate":0.125926,"seller_shipping_share":0.0357143,"review_velocity_yoy":0.173913,"history_status":"ok"},{"fiscal_quarter":"FY2025Q4","n_sources":1,"n_reviews":118,"composite_mean_tone":1.04237,"composite_tone_delta":-0.320968,"eligible":true,"defect_rate":0.0423729,"quality_decline_rate":0.0762712,"price_rate":0.118644,"seller_shipping_share":0.078125,"review_velocity_yoy":0.113208,"history_status":"ok"},{"fiscal_quarter":"FY2026Q1","n_sources":1,"n_reviews":115,"composite_mean_tone":-0.0173913,"composite_tone_delta":-1.45972,"eligible":true,"defect_rate":0.182609,"quality_decline_rate":0.191304,"price_rate":0.121739,"seller_shipping_share":0.057377,"review_velocity_yoy":0.0550459,"history_status":"ok"},{"fiscal_quarter":"FY2026Q2","n_sources":1,"n_reviews":131,"composite_mean_tone":1.09924,"composite_tone_delta":0.0121711,"eligible":true,"defect_rate":0.0305344,"quality_decline_rate":0.0610687,"price_rate":0.137405,"seller_shipping_share":0.0296296,"review_velocity_yoy":0.0396825,"history_status":"ok"},{"fiscal_quarter":"FY2026Q3","n_sources":1,"n_reviews":42,"composite_mean_tone":1.66667,"composite_tone_delta":null,"eligible":false,"defect_rate":0.0238095,"quality_decline_rate":0.0238095,"price_rate":0.0714286,"seller_shipping_share":0.0454545,"review_velocity_yoy":null,"history_status":"partial_quarter"}],"revenue":[{"fiscal_quarter":"FY2022Q3","revenue_usd":992250000.0,"revenue_yoy":0.05,"filed":"2022-05-10","derived_q4":false,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000022000003/"},{"fiscal_quarter":"FY2022Q4","revenue_usd":994140000.0,"revenue_yoy":0.052,"filed":"2022-08-29","derived_q4":true,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000022000004/"},{"fiscal_quarter":"FY2023Q1","revenue_usd":1108130000.0,"revenue_yoy":0.056,"filed":"2022-11-09","derived_q4":false,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000023000001/"},{"fiscal_quarter":"FY2023Q2","revenue_usd":1453930000.0,"revenue_yoy":0.053,"filed":"2023-02-09","derived_q4":false,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000023000002/"},{"fiscal_quarter":"FY2023Q3","revenue_usd":1052780000.0,"revenue_yoy":0.061,"filed":"2023-05-10","derived_q4":false,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000023000003/"},{"fiscal_quarter":"FY2023Q4","revenue_usd":1054780000.0,"revenue_yoy":0.061,"filed":"2023-08-29","derived_q4":true,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000023000004/"},{"fiscal_quarter":"FY2024Q1","revenue_usd":1170740000.0,"revenue_yoy":0.0565,"filed":"2023-11-09","derived_q4":false,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000024000001/"},{"fiscal_quarter":"FY2024Q2","revenue_usd":1537530000.0,"revenue_yoy":0.0575,"filed":"2024-02-09","derived_q4":false,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000024000002/"},{"fiscal_quarter":"FY2024Q3","revenue_usd":1119890000.0,"revenue_yoy":0.06375,"filed":"2024-05-10","derived_q4":false,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000024000003/"},{"fiscal_quarter":"FY2024Q4","revenue_usd":1079040000.0,"revenue_yoy":0.023,"filed":"2024-08-29","derived_q4":true,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000024000004/"},{"fiscal_quarter":"FY2025Q1","revenue_usd":1207920000.0,"revenue_yoy":0.03175,"filed":"2024-11-09","derived_q4":false,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000025000001/"},{"fiscal_quarter":"FY2025Q2","revenue_usd":1624020000.0,"revenue_yoy":0.05625,"filed":"2025-02-09","derived_q4":false,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000025000002/"},{"fiscal_quarter":"FY2025Q3","revenue_usd":1228800000.0,"revenue_yoy":0.09725,"filed":"2025-05-10","derived_q4":false,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000025000003/"},{"fiscal_quarter":"FY2025Q4","revenue_usd":1171300000.0,"revenue_yoy":0.0855,"filed":"2025-08-29","derived_q4":true,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000025000004/"},{"fiscal_quarter":"FY2026Q1","revenue_usd":1299420000.0,"revenue_yoy":0.07575,"filed":"2025-11-09","derived_q4":false,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000026000001/"},{"fiscal_quarter":"FY2026Q2","revenue_usd":1671930000.0,"revenue_yoy":0.0295,"filed":"2026-02-09","derived_q4":false,"filing_url":"https://www.sec.gov/Archives/edgar/data/0/000000000026000002/"}],"joined":[{"fiscal_quarter":"FY2022Q4","composite_tone_delta":null,"yoy_accel_next":0.004,"revenue_next_yoy":0.056,"revenue_status":"reported","eligible":false},{"fiscal_quarter":"FY2023Q1","composite_tone_delta":null,"yoy_accel_next":-0.003,"revenue_next_yoy":0.053,"revenue_status":"reported","eligible":false},{"fiscal_quarter":"FY2023Q2","composite_tone_delta":null,"yoy_accel_next":0.008,"revenue_next_yoy":0.061,"revenue_status":"reported","eligible":false},{"fiscal_quarter":"FY2023Q3","composite_tone_delta":null,"yoy_accel_next":0.0,"revenue_next_yoy":0.061,"revenue_status":"reported","eligible":false},{"fiscal_quarter":"FY2023Q4","composite_tone_delta":null,"yoy_accel_next":-0.0045,"revenue_next_yoy":0.0565,"revenue_status":"reported","eligible":false},{"fiscal_quarter":"FY2024Q1","composite_tone_delta":null,"yoy_accel_next":0.001,"revenue_next_yoy":0.0575,"revenue_status":"reported","eligible":false},{"fiscal_quarter":"FY2024Q2","composite_tone_delta":0.0382515,"yoy_accel_next":0.00625,"revenue_next_yoy":0.06375,"revenue_status":"reported","eligible":true},{"fiscal_quarter":"FY2024Q3","composite_tone_delta":-1.32177,"yoy_accel_next":-0.04075,"revenue_next_yoy":0.023,"revenue_status":"reported","eligible":true},{"fiscal_quarter":"FY2024Q4","composite_tone_delta":-0.197597,"yoy_accel_next":0.00875,"revenue_next_yoy":0.03175,"revenue_status":"reported","eligible":true},{"fiscal_quarter":"FY2025Q1","composite_tone_delta":0.559043,"yoy_accel_next":0.0245,"revenue_next_yoy":0.05625,"revenue_status":"reported","eligible":true},{"fiscal_quarter":"FY2025Q2","composite_tone_delta":0.908117,"yoy_accel_next":0.041,"revenue_next_yoy":0.09725,"revenue_status":"reported","eligible":true},{"fiscal_quarter":"FY2025Q3","composite_tone_delta":0.639879,"yoy_accel_next":-0.01175,"revenue_next_yoy":0.0855,"revenue_status":"reported","eligible":true},{"fiscal_quarter":"FY2025Q4","composite_tone_delta":-0.320968,"yoy_accel_next":-0.00975,"revenue_next_yoy":0.07575,"revenue_status":"reported","eligible":true},{"fiscal_quarter":"FY2026Q1","composite_tone_delta":-1.45972,"yoy_accel_next":-0.04625,"revenue_next_yoy":0.0295,"revenue_status":"reported","eligible":true},{"fiscal_quarter":"FY2026Q2","composite_tone_delta":0.0121711,"yoy_accel_next":null,"revenue_next_yoy":null,"revenue_status":"next_quarter_not_yet_reported","eligible":true},{"fiscal_quarter":"FY2026Q3","composite_tone_delta":null,"yoy_accel_next":null,"revenue_next_yoy":null,"revenue_status":"next_quarter_not_yet_reported","eligible":false}],"factors_latest":[{"ticker":"SAMPLE","fiscal_quarter":"FY2026Q2","factor":"product_tone","label":"Product tone","group":"Reviews","value":1.09924,"zscore":0.0153209,"status":"ok","unit":"score","better":"higher","description":"Mean review tone on a -2..+2 scale; seller/shipping-only reviews excluded."},{"ticker":"SAMPLE","fiscal_quarter":"FY2026Q2","factor":"tone_delta","label":"Tone vs. own baseline","group":"Reviews","value":0.0121711,"zscore":0.0655545,"status":"ok","unit":"score","better":"higher","description":"This quarter's tone minus the mean of the prior four quarters. The pre-registered signal."},{"ticker":"SAMPLE","fiscal_quarter":"FY2026Q2","factor":"review_velocity","label":"Review velocity","group":"Demand","value":0.0396825,"zscore":-1.57886,"status":"ok","unit":"pct","better":"higher","description":"Review count vs. the same quarter a year earlier. A rough proxy for units sold."},{"ticker":"SAMPLE","fiscal_quarter":"FY2026Q2","factor":"defect_rate","label":"Defect mentions","group":"Quality","value":0.0305344,"zscore":-0.38378,"status":"ok","unit":"pct","better":"lower","description":"Share of reviews describing failures: stopped working, broke, defective, disconnects."},{"ticker":"SAMPLE","fiscal_quarter":"FY2026Q2","factor":"quality_decline_rate","label":"Quality-decline mentions","group":"Quality","value":0.0610687,"zscore":-0.133162,"status":"ok","unit":"pct","better":"lower","description":"Share of reviews comparing unfavourably with an earlier version or model."},{"ticker":"SAMPLE","fiscal_quarter":"FY2026Q2","factor":"price_rate","label":"Price mentions","group":"Value","value":0.137405,"zscore":1.35954,"status":"ok","unit":"pct","better":"neutral","description":"Share of reviews that talk about price or value, for better or worse."},{"ticker":"SAMPLE","fiscal_quarter":"FY2026Q2","factor":"seller_shipping_share","label":"Seller/shipping complaints","group":"Channel","value":0.0296296,"zscore":-1.15152,"status":"ok","unit":"pct","better":"lower","description":"Share of reviews only about delivery, packaging or the seller."},{"ticker":"SAMPLE","fiscal_quarter":"FY2026Q2","factor":"revenue_yoy","label":"Revenue growth","group":"Financials","value":0.0295,"zscore":-2.83505,"status":"ok","unit":"pct","better":"higher","description":"SEC-reported revenue vs. the same fiscal quarter a year earlier."},{"ticker":"SAMPLE","fiscal_quarter":"FY2026Q2","factor":"revenue_accel","label":"Revenue growth acceleration","group":"Financials","value":-0.04625,"zscore":-2.20063,"status":"ok","unit":"pts","better":"higher","description":"Change in YoY growth from the previous quarter."},{"ticker":"SAMPLE","fiscal_quarter":null,"factor":"reddit_tone","label":"Reddit tone","group":"Community","value":null,"zscore":null,"status":"planned","unit":null,"better":null,"description":"Tone of brand and product posts and comments. Planned source: reddit."},{"ticker":"SAMPLE","fiscal_quarter":null,"factor":"reddit_volume","label":"Reddit mention volume","group":"Community","value":null,"zscore":null,"status":"planned","unit":null,"better":null,"description":"Posts and comments mentioning the brand or flagship products. Planned source: reddit."},{"ticker":"SAMPLE","fiscal_quarter":null,"factor":"search_interest","label":"Search interest","group":"Demand","value":null,"zscore":null,"status":"planned","unit":null,"better":null,"description":"Google Trends interest for brand and flagship products. Planned source: google_trends."},{"ticker":"SAMPLE","fiscal_quarter":null,"factor":"app_rating","label":"App-store rating","group":"Experience","value":null,"zscore":null,"status":"planned","unit":null,"better":null,"description":"Average new rating of the company's apps. Planned source: app_store."}],"factor_series":{"product_tone":[{"fiscal_quarter":"FY2022Q4","value":1.29032,"zscore":null,"status":"truncated"},{"fiscal_quarter":"FY2023Q1","value":0.857143,"zscore":null,"status":"sparse"},{"fiscal_quarter":"FY2023Q2","value":1.29167,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q3","value":1.15625,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q4","value":1.04396,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q1","value":1.46226,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q2","value":1.27679,"zscore":0.212194,"status":"ok"},{"fiscal_quarter":"FY2024Q3","value":-0.0869565,"zscore":-7.38542,"status":"ok"},{"fiscal_quarter":"FY2024Q4","value":0.726415,"zscore":-0.284164,"status":"ok"},{"fiscal_quarter":"FY2025Q1","value":1.40367,"zscore":0.804106,"status":"ok"},{"fiscal_quarter":"FY2025Q2","value":1.7381,"zscore":1.33883,"status":"ok"},{"fiscal_quarter":"FY2025Q3","value":1.58519,"zscore":0.79325,"status":"ok"},{"fiscal_quarter":"FY2025Q4","value":1.04237,"zscore":-0.719543,"status":"ok"},{"fiscal_quarter":"FY2026Q1","value":-0.0173913,"zscore":-4.8716,"status":"ok"},{"fiscal_quarter":"FY2026Q2","value":1.09924,"zscore":0.0153209,"status":"ok"},{"fiscal_quarter":"FY2026Q3","value":1.66667,"zscore":null,"status":"partial_quarter"}],"tone_delta":[{"fiscal_quarter":"FY2022Q4","value":null,"zscore":null,"status":"truncated"},{"fiscal_quarter":"FY2023Q1","value":null,"zscore":null,"status":"sparse"},{"fiscal_quarter":"FY2023Q2","value":null,"zscore":null,"status":"no_baseline"},{"fiscal_quarter":"FY2023Q3","value":null,"zscore":null,"status":"no_baseline"},{"fiscal_quarter":"FY2023Q4","value":null,"zscore":null,"status":"no_baseline"},{"fiscal_quarter":"FY2024Q1","value":null,"zscore":null,"status":"no_baseline"},{"fiscal_quarter":"FY2024Q2","value":0.0382515,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q3","value":-1.32177,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q4","value":-0.197597,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2025Q1","value":0.559043,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2025Q2","value":0.908117,"zscore":1.43547,"status":"ok"},{"fiscal_quarter":"FY2025Q3","value":0.639879,"zscore":0.661515,"status":"ok"},{"fiscal_quarter":"FY2025Q4","value":-0.320968,"zscore":-1.68402,"status":"ok"},{"fiscal_quarter":"FY2026Q1","value":-1.45972,"zscore":-3.57666,"status":"ok"},{"fiscal_quarter":"FY2026Q2","value":0.0121711,"zscore":0.0655545,"status":"ok"},{"fiscal_quarter":"FY2026Q3","value":null,"zscore":null,"status":"partial_quarter"}],"review_velocity":[{"fiscal_quarter":"FY2022Q4","value":null,"zscore":null,"status":"truncated"},{"fiscal_quarter":"FY2023Q1","value":null,"zscore":null,"status":"sparse"},{"fiscal_quarter":"FY2023Q2","value":null,"zscore":null,"status":"no_baseline"},{"fiscal_quarter":"FY2023Q3","value":null,"zscore":null,"status":"no_baseline"},{"fiscal_quarter":"FY2023Q4","value":null,"zscore":null,"status":"no_baseline"},{"fiscal_quarter":"FY2024Q1","value":null,"zscore":null,"status":"no_baseline"},{"fiscal_quarter":"FY2024Q2","value":0.166667,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q3","value":0.197917,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q4","value":0.164835,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2025Q1","value":0.0283019,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2025Q2","value":0.125,"zscore":-0.190813,"status":"ok"},{"fiscal_quarter":"FY2025Q3","value":0.173913,"zscore":0.611197,"status":"ok"},{"fiscal_quarter":"FY2025Q4","value":0.113208,"zscore":-0.147174,"status":"ok"},{"fiscal_quarter":"FY2026Q1","value":0.0550459,"zscore":-0.909502,"status":"ok"},{"fiscal_quarter":"FY2026Q2","value":0.0396825,"zscore":-1.57886,"status":"ok"},{"fiscal_quarter":"FY2026Q3","value":null,"zscore":null,"status":"partial_quarter"}],"defect_rate":[{"fiscal_quarter":"FY2022Q4","value":0.0322581,"zscore":null,"status":"truncated"},{"fiscal_quarter":"FY2023Q1","value":0.0714286,"zscore":null,"status":"sparse"},{"fiscal_quarter":"FY2023Q2","value":0.0208333,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q3","value":0.03125,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q4","value":0.043956,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q1","value":0.00943396,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q2","value":0.0357143,"zscore":0.634658,"status":"ok"},{"fiscal_quarter":"FY2024Q3","value":0.191304,"zscore":10.9363,"status":"ok"},{"fiscal_quarter":"FY2024Q4","value":0.0943396,"zscore":0.295107,"status":"ok"},{"fiscal_quarter":"FY2025Q1","value":0.0275229,"zscore":-0.684259,"status":"ok"},{"fiscal_quarter":"FY2025Q2","value":0.00793651,"zscore":-1.05012,"status":"ok"},{"fiscal_quarter":"FY2025Q3","value":0.0148148,"zscore":-0.791103,"status":"ok"},{"fiscal_quarter":"FY2025Q4","value":0.0423729,"zscore":0.156937,"status":"ok"},{"fiscal_quarter":"FY2026Q1","value":0.182609,"zscore":10.5169,"status":"ok"},{"fiscal_quarter":"FY2026Q2","value":0.0305344,"zscore":-0.38378,"status":"ok"},{"fiscal_quarter":"FY2026Q3","value":0.0238095,"zscore":null,"status":"partial_quarter"}],"quality_decline_rate":[{"fiscal_quarter":"FY2022Q4","value":0.0483871,"zscore":null,"status":"truncated"},{"fiscal_quarter":"FY2023Q1","value":0.0714286,"zscore":null,"status":"sparse"},{"fiscal_quarter":"FY2023Q2","value":0.0520833,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q3","value":0.0625,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q4","value":0.0989011,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q1","value":0.0283019,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q2","value":0.0625,"zscore":0.0699373,"status":"ok"},{"fiscal_quarter":"FY2024Q3","value":0.234783,"zscore":5.95692,"status":"ok"},{"fiscal_quarter":"FY2024Q4","value":0.0754717,"zscore":-0.338714,"status":"ok"},{"fiscal_quarter":"FY2025Q1","value":0.0183486,"zscore":-0.891745,"status":"ok"},{"fiscal_quarter":"FY2025Q2","value":0.0,"zscore":-1.03407,"status":"ok"},{"fiscal_quarter":"FY2025Q3","value":0.0222222,"zscore":-0.561606,"status":"ok"},{"fiscal_quarter":"FY2025Q4","value":0.0762712,"zscore":1.45618,"status":"ok"},{"fiscal_quarter":"FY2026Q1","value":0.191304,"zscore":4.93633,"status":"ok"},{"fiscal_quarter":"FY2026Q2","value":0.0610687,"zscore":-0.133162,"status":"ok"},{"fiscal_quarter":"FY2026Q3","value":0.0238095,"zscore":null,"status":"partial_quarter"}],"price_rate":[{"fiscal_quarter":"FY2022Q4","value":0.209677,"zscore":null,"status":"truncated"},{"fiscal_quarter":"FY2023Q1","value":0.142857,"zscore":null,"status":"sparse"},{"fiscal_quarter":"FY2023Q2","value":0.1875,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q3","value":0.145833,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q4","value":0.131868,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q1","value":0.150943,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q2","value":0.151786,"zscore":-0.094851,"status":"ok"},{"fiscal_quarter":"FY2024Q3","value":0.217391,"zscore":7.84847,"status":"ok"},{"fiscal_quarter":"FY2024Q4","value":0.141509,"zscore":-0.574379,"status":"ok"},{"fiscal_quarter":"FY2025Q1","value":0.155963,"zscore":-0.270086,"status":"ok"},{"fiscal_quarter":"FY2025Q2","value":0.0873016,"zscore":-2.30967,"status":"ok"},{"fiscal_quarter":"FY2025Q3","value":0.125926,"zscore":-0.460301,"status":"ok"},{"fiscal_quarter":"FY2025Q4","value":0.118644,"zscore":-0.30532,"status":"ok"},{"fiscal_quarter":"FY2026Q1","value":0.121739,"zscore":-0.0077916,"status":"ok"},{"fiscal_quarter":"FY2026Q2","value":0.137405,"zscore":1.35954,"status":"ok"},{"fiscal_quarter":"FY2026Q3","value":0.0714286,"zscore":null,"status":"partial_quarter"}],"seller_shipping_share":[{"fiscal_quarter":"FY2022Q4","value":0.0461538,"zscore":null,"status":"truncated"},{"fiscal_quarter":"FY2023Q1","value":0.0,"zscore":null,"status":"sparse"},{"fiscal_quarter":"FY2023Q2","value":0.0,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q3","value":0.0769231,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q4","value":0.0808081,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q1","value":0.0363636,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2024Q2","value":0.0508475,"zscore":0.0610174,"status":"ok"},{"fiscal_quarter":"FY2024Q3","value":0.0495868,"zscore":-0.547971,"status":"ok"},{"fiscal_quarter":"FY2024Q4","value":0.0275229,"zscore":-1.43095,"status":"ok"},{"fiscal_quarter":"FY2025Q1","value":0.0438596,"zscore":0.248993,"status":"ok"},{"fiscal_quarter":"FY2025Q2","value":0.0381679,"zscore":-0.446169,"status":"ok"},{"fiscal_quarter":"FY2025Q3","value":0.0357143,"zscore":-0.432513,"status":"ok"},{"fiscal_quarter":"FY2025Q4","value":0.078125,"zscore":6.16402,"status":"ok"},{"fiscal_quarter":"FY2026Q1","value":0.057377,"zscore":0.42614,"status":"ok"},{"fiscal_quarter":"FY2026Q2","value":0.0296296,"zscore":-1.15152,"status":"ok"},{"fiscal_quarter":"FY2026Q3","value":0.0454545,"zscore":null,"status":"partial_quarter"}],"revenue_yoy":[{"fiscal_quarter":"FY2022Q3","value":0.05,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2022Q4","value":0.052,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q1","value":0.056,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q2","value":0.053,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q3","value":0.061,"zscore":3.3,"status":"ok"},{"fiscal_quarter":"FY2023Q4","value":0.061,"zscore":1.3609,"status":"ok"},{"fiscal_quarter":"FY2024Q1","value":0.0565,"zscore":-0.31665,"status":"ok"},{"fiscal_quarter":"FY2024Q2","value":0.0575,"zscore":-0.0966235,"status":"ok"},{"fiscal_quarter":"FY2024Q3","value":0.06375,"zscore":2.02541,"status":"ok"},{"fiscal_quarter":"FY2024Q4","value":0.023,"zscore":-11.033,"status":"ok"},{"fiscal_quarter":"FY2025Q1","value":0.03175,"zscore":-1.00167,"status":"ok"},{"fiscal_quarter":"FY2025Q2","value":0.05625,"zscore":0.622067,"status":"ok"},{"fiscal_quarter":"FY2025Q3","value":0.09725,"zscore":2.75886,"status":"ok"},{"fiscal_quarter":"FY2025Q4","value":0.0855,"zscore":1.00564,"status":"ok"},{"fiscal_quarter":"FY2026Q1","value":0.07575,"zscore":0.273159,"status":"ok"},{"fiscal_quarter":"FY2026Q2","value":0.0295,"zscore":-2.83505,"status":"ok"}],"revenue_accel":[{"fiscal_quarter":"FY2022Q3","value":null,"zscore":null,"status":"no_baseline"},{"fiscal_quarter":"FY2022Q4","value":0.002,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q1","value":0.004,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q2","value":-0.003,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q3","value":0.008,"zscore":null,"status":"ok"},{"fiscal_quarter":"FY2023Q4","value":0.0,"zscore":-0.601293,"status":"ok"},{"fiscal_quarter":"FY2024Q1","value":-0.0045,"zscore":-1.41003,"status":"ok"},{"fiscal_quarter":"FY2024Q2","value":0.001,"zscore":0.156996,"status":"ok"},{"fiscal_quarter":"FY2024Q3","value":0.00625,"zscore":0.991291,"status":"ok"},{"fiscal_quarter":"FY2024Q4","value":-0.04075,"zscore":-9.39002,"status":"ok"},{"fiscal_quarter":"FY2025Q1","value":0.00875,"zscore":0.857184,"status":"ok"},{"fiscal_quarter":"FY2025Q2","value":0.0245,"zscore":1.31893,"status":"ok"},{"fiscal_quarter":"FY2025Q3","value":0.041,"zscore":1.46796,"status":"ok"},{"fiscal_quarter":"FY2025Q4","value":-0.01175,"zscore":-0.570148,"status":"ok"},{"fiscal_quarter":"FY2026Q1","value":-0.00975,"zscore":-1.12757,"status":"ok"},{"fiscal_quarter":"FY2026Q2","value":-0.04625,"zscore":-2.20063,"status":"ok"}]},"backtest":{"ticker":"SAMPLE","as_of":"2026-02-20","rule_id":"tone-delta-lead-v1","rule_check":{"recorded":"5f3520c98c154a4d2dc5b0419f2561db0ad44cd21c33b7d489dc838a50a88b85","actual":"5f3520c98c154a4d2dc5b0419f2561db0ad44cd21c33b7d489dc838a50a88b85","matches":true,"acknowledged_change":false},"eligible_quarters":8,"evaluated":8,"required":8,"insufficient":false,"calls":7,"hits":5,"misses":2,"no_calls":1,"hit_rate":0.7142857142857143,"p_value_vs_50":0.2265625,"persistence_hits_on_same_calls":3,"persistence_scored":7,"rows":[{"fiscal_quarter":"FY2024Q2","n_reviews":112,"tone_delta":0.0382515,"call":"NO CALL","revenue_yoy_q":0.0575,"revenue_yoy_next":0.06375,"yoy_accel_next":0.00625,"actual":"accelerated","outcome":"NO CALL","persistence_call":"DOWN","persistence_hit":false,"nowcast_accel":0.001,"nowcast_outcome":null,"defect_rate":0.0357143,"quality_decline_rate":0.0625,"price_rate":0.151786,"revenue_next_filed":"2024-05-10","revenue_next_url":"https://www.sec.gov/Archives/edgar/data/0/000000000024000003/"},{"fiscal_quarter":"FY2024Q3","n_reviews":115,"tone_delta":-1.32177,"call":"DOWN","revenue_yoy_q":0.06375,"revenue_yoy_next":0.023,"yoy_accel_next":-0.04075,"actual":"decelerated","outcome":"HIT","persistence_call":"UP","persistence_hit":false,"nowcast_accel":0.00625,"nowcast_outcome":"MISS","defect_rate":0.191304,"quality_decline_rate":0.234783,"price_rate":0.217391,"revenue_next_filed":"2024-08-29","revenue_next_url":"https://www.sec.gov/Archives/edgar/data/0/000000000024000004/"},{"fiscal_quarter":"FY2024Q4","n_reviews":106,"tone_delta":-0.197597,"call":"DOWN","revenue_yoy_q":0.023,"revenue_yoy_next":0.03175,"yoy_accel_next":0.00875,"actual":"accelerated","outcome":"MISS","persistence_call":"UP","persistence_hit":true,"nowcast_accel":-0.04075,"nowcast_outcome":"HIT","defect_rate":0.09433960000000001,"quality_decline_rate":0.0754717,"price_rate":0.141509,"revenue_next_filed":"2024-11-09","revenue_next_url":"https://www.sec.gov/Archives/edgar/data/0/000000000025000001/"},{"fiscal_quarter":"FY2025Q1","n_reviews":109,"tone_delta":0.559043,"call":"UP","revenue_yoy_q":0.03175,"revenue_yoy_next":0.05625,"yoy_accel_next":0.0245,"actual":"accelerated","outcome":"HIT","persistence_call":"DOWN","persistence_hit":false,"nowcast_accel":0.00875,"nowcast_outcome":"HIT","defect_rate":0.027522899999999996,"quality_decline_rate":0.0183486,"price_rate":0.155963,"revenue_next_filed":"2025-02-09","revenue_next_url":"https://www.sec.gov/Archives/edgar/data/0/000000000025000002/"},{"fiscal_quarter":"FY2025Q2","n_reviews":126,"tone_delta":0.908117,"call":"UP","revenue_yoy_q":0.05625,"revenue_yoy_next":0.09725,"yoy_accel_next":0.041,"actual":"accelerated","outcome":"HIT","persistence_call":"UP","persistence_hit":true,"nowcast_accel":0.0245,"nowcast_outcome":"HIT","defect_rate":0.00793651,"quality_decline_rate":0.0,"price_rate":0.0873016,"revenue_next_filed":"2025-05-10","revenue_next_url":"https://www.sec.gov/Archives/edgar/data/0/000000000025000003/"},{"fiscal_quarter":"FY2025Q3","n_reviews":135,"tone_delta":0.639879,"call":"UP","revenue_yoy_q":0.09725,"revenue_yoy_next":0.0855,"yoy_accel_next":-0.01175,"actual":"decelerated","outcome":"MISS","persistence_call":"UP","persistence_hit":false,"nowcast_accel":0.041,"nowcast_outcome":"HIT","defect_rate":0.0148148,"quality_decline_rate":0.0222222,"price_rate":0.125926,"revenue_next_filed":"2025-08-29","revenue_next_url":"https://www.sec.gov/Archives/edgar/data/0/000000000025000004/"},{"fiscal_quarter":"FY2025Q4","n_reviews":118,"tone_delta":-0.320968,"call":"DOWN","revenue_yoy_q":0.0855,"revenue_yoy_next":0.07575,"yoy_accel_next":-0.00975,"actual":"decelerated","outcome":"HIT","persistence_call":"UP","persistence_hit":false,"nowcast_accel":-0.01175,"nowcast_outcome":"HIT","defect_rate":0.0423729,"quality_decline_rate":0.0762712,"price_rate":0.118644,"revenue_next_filed":"2025-11-09","revenue_next_url":"https://www.sec.gov/Archives/edgar/data/0/000000000026000001/"},{"fiscal_quarter":"FY2026Q1","n_reviews":115,"tone_delta":-1.45972,"call":"DOWN","revenue_yoy_q":0.07575,"revenue_yoy_next":0.0295,"yoy_accel_next":-0.04625,"actual":"decelerated","outcome":"HIT","persistence_call":"DOWN","persistence_hit":true,"nowcast_accel":-0.00975,"nowcast_outcome":"HIT","defect_rate":0.182609,"quality_decline_rate":0.191304,"price_rate":0.121739,"revenue_next_filed":"2026-02-09","revenue_next_url":"https://www.sec.gov/Archives/edgar/data/0/000000000026000002/"}]}}}</script>
+<script>
+(function () {
+  "use strict";
+  const DATA = JSON.parse(document.getElementById("dashboard-data").textContent);
+  const ENTRIES = [DATA.sample].concat(DATA.companies).filter(Boolean);
+  const keyOf = (e) => (e.synthetic ? "sample" : e.ticker.toLowerCase());
+  const $ = (id) => document.getElementById(id);
+  const NS = "http://www.w3.org/2000/svg";
+  const RULE = DATA.rule;
+
+  // ---------- formatting
+  const isNum = (x) => typeof x === "number" && isFinite(x);
+  const fmtSigned = (x, d = 2) => (isNum(x) ? (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x).toFixed(d) : "—");
+  const fmtPct = (x, signed = true, d = 1) => (isNum(x) ? (signed ? fmtSigned(x * 100, d) : (x * 100).toFixed(d)) + "%" : "—");
+  const fmtPts = (x) => (isNum(x) ? fmtSigned(x * 100, 1) + " pts" : "—");
+  const fmtUSD = (x) => {
+    if (!isNum(x)) return "—";
+    const a = Math.abs(x);
+    if (a >= 1e9) return "$" + (x / 1e9).toFixed(2) + "B";
+    if (a >= 1e6) return "$" + (x / 1e6).toFixed(1) + "M";
+    return "$" + Math.round(x).toLocaleString();
+  };
+  const shortQ = (q) => (q ? q.replace(/^FY(\d\d)?(\d\d)Q(\d)$/, "FY$2 Q$3") : "");
+  const STATUS_TEXT = {
+    ok: "Usable",
+    no_baseline: "No baseline yet",
+    sparse: "Sparse",
+    truncated: "Truncated",
+    partial_quarter: "In progress",
+    partial: "In progress",
+    not_collected: "Not collected",
+    planned: "Planned",
+  };
+  const ICON = {
+    up: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2.5 10 8H2z" fill="currentColor"/></svg>',
+    down: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 9.5 2 4h8z" fill="currentColor"/></svg>',
+    dot: '<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="3" fill="currentColor"/></svg>',
+    warn: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5 11 10.5H1z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6 5v2.4M6 8.9v.1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+    check: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.3 5 8.6l4.5-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    x: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="m3 3 6 6M9 3 3 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  };
+  function el(tag, attrs, children) {
+    const n = document.createElement(tag);
+    if (attrs) for (const [k, v] of Object.entries(attrs)) {
+      if (v == null) continue;
+      if (k === "text") n.textContent = v;
+      else if (k === "html") n.innerHTML = v;
+      else if (k === "class") n.className = v;
+      else n.setAttribute(k, v);
+    }
+    (children || []).forEach((c) => c != null && n.append(c));
+    return n;
+  }
+  function chip(text, kind, icon) {
+    const c = el("span", { class: "chip" + (kind ? " " + kind : "") });
+    if (icon) c.insertAdjacentHTML("afterbegin", ICON[icon]);
+    c.append(document.createTextNode(text));
+    return c;
+  }
+  function svg(tag, attrs) {
+    const n = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs || {})) if (v != null) n.setAttribute(k, v);
+    return n;
+  }
+  function emptyState(title, body) {
+    return el("div", { class: "empty-state" }, [el("strong", { text: title }), el("p", { html: body })]);
+  }
+
+  // ---------- header
+  let current = null;
+  function chooseInitial() {
+    const fromHash = location.hash.replace("#", "").toLowerCase();
+    if (ENTRIES.some((e) => keyOf(e) === fromHash)) return fromHash;
+    try {
+      const saved = localStorage.getItem("pst-company");
+      if (saved && ENTRIES.some((e) => keyOf(e) === saved)) return saved;
+    } catch (_) {}
+    const ready = DATA.companies.find((c) => !c.status.insufficient);
+    return ready ? keyOf(ready) : "sample";
+  }
+  function renderPicker() {
+    const p = $("picker");
+    p.replaceChildren();
+    ENTRIES.forEach((e) => {
+      const b = el("button", { role: "tab", type: "button", id: "tab-" + keyOf(e), "aria-selected": String(keyOf(e) === current), text: e.synthetic ? "Sample Co" : e.ticker });
+      b.addEventListener("click", () => select(keyOf(e)));
+      p.append(b);
+    });
+  }
+  function select(key) {
+    current = key;
+    try { localStorage.setItem("pst-company", key); } catch (_) {}
+    if (history.replaceState) history.replaceState(null, "", "#" + key);
+    render();
+  }
+
+  function renderHeader(e) {
+    $("co-name").textContent = e.name;
+    const typeLabel = { manufacturer: "Manufacturer", dtc: "Direct to consumer", retailer: "Retailer" }[e.company_type] || e.company_type;
+    $("co-sub").textContent = (e.synthetic ? "SAMPLE" : e.ticker) + " · fiscal year ends " + fyeText(e.fiscal_year_end) + " · " + typeLabel + ". " + (e.segment_note || "");
+    const chips = $("co-chips");
+    chips.replaceChildren();
+    chips.append(e.synthetic ? chip("Synthetic sample data", "warn", "warn") : chip("Pipeline data", "accent", "dot"));
+    const s = e.status;
+    chips.append(s.insufficient ? chip(s.label, "warn", "warn") : chip(s.label, "good", "check"));
+    chips.append(chip(s.reviews_scored.toLocaleString() + " reviews scored"));
+    chips.append(chip(s.revenue_quarters ? s.revenue_quarters + " revenue quarters" : "No SEC revenue yet", s.revenue_quarters ? "" : "warn"));
+    chips.append(chip(s.last_fetch ? "Last collected " + s.last_fetch.slice(0, 10) : "Never collected", s.last_fetch ? "" : "warn"));
+    $("synthetic-banner").hidden = !e.synthetic;
+  }
+  function fyeText(mmdd) {
+    const m = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const mm = parseInt(String(mmdd).slice(0, 2), 10), dd = parseInt(String(mmdd).slice(2), 10);
+    return m[mm - 1] ? m[mm - 1] + " " + dd : String(mmdd);
+  }
+
+  // ---------- factor tiles
+  const GROUP_ORDER = ["Reviews", "Quality", "Demand", "Value", "Channel", "Financials", "Community", "Experience"];
+  function factorValue(f) {
+    if (!isNum(f.value)) return null;
+    if (f.unit === "score") return f.factor === "tone_delta" ? fmtSigned(f.value) : fmtSigned(f.value);
+    if (f.unit === "pct") return f.factor.endsWith("_rate") || f.factor === "seller_shipping_share" ? fmtPct(f.value, false) : fmtPct(f.value);
+    if (f.unit === "pts") return fmtPts(f.value);
+    return String(f.value);
+  }
+  function zChip(f) {
+    if (!isNum(f.zscore)) return null;
+    const z = f.zscore, txt = fmtSigned(z, 1) + "σ";
+    if (Math.abs(z) < 1 || f.better === "neutral") return chip(txt + " in range", "", "dot");
+    const good = (z > 0) === (f.better === "higher");
+    return chip(txt, good ? "good" : "bad", z > 0 ? "up" : "down");
+  }
+  function sparkline(series) {
+    const pts = (series || []).filter((r) => isNum(r.value));
+    if (pts.length < 2) return null;
+    const w = 96, h = 26, pad = 4;
+    const vals = pts.map((p) => p.value);
+    const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1;
+    const x = (i) => pad + (i * (w - 2 * pad)) / (pts.length - 1);
+    const y = (v) => h - pad - ((v - lo) / span) * (h - 2 * pad);
+    const s = svg("svg", { class: "spark", viewBox: `0 0 ${w} ${h}`, "aria-hidden": "true" });
+    s.append(svg("path", { d: pts.map((p, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(p.value).toFixed(1)).join(""), fill: "none", stroke: "var(--ref)", "stroke-width": 1.5, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    s.append(svg("circle", { cx: x(pts.length - 1), cy: y(vals[vals.length - 1]), r: 3, fill: "var(--pos)", stroke: "var(--panel)", "stroke-width": 1.5 }));
+    return s;
+  }
+  function renderFactors(e) {
+    const host = $("factor-groups");
+    host.replaceChildren();
+    const rank = (f) => GROUP_ORDER.indexOf(f.group);
+    const live = e.factors_latest.filter((f) => f.status !== "planned").sort((a, b) => rank(a) - rank(b));
+    const planned = e.factors_latest.filter((f) => f.status === "planned");
+    if (live.every((f) => !isNum(f.value))) {
+      const list = live.map((f) => f.label).join(" · ");
+      host.append(emptyState("No signals yet for " + e.ticker, "Once reviews and SEC revenue are collected, this panel shows each of these against the company's own history: " + esc(list) + "."));
+    } else {
+      const tiles = el("div", { class: "tiles" });
+      live.forEach((f) => {
+        const v = factorValue(f);
+        const empty = v == null;
+        const left = el("div", { class: "chips" });
+        if (empty) left.append(chip(STATUS_TEXT[f.status] || f.status, "warn", "warn"));
+        else {
+          const z = zChip(f);
+          if (z) left.append(z);
+          if (f.status !== "ok") left.append(chip(STATUS_TEXT[f.status] || f.status, "warn", "warn"));
+          if (!z && f.status === "ok") left.append(chip("Needs 4 prior quarters"));
+        }
+        const foot = el("div", { class: "tile-foot" }, [left]);
+        const sp = sparkline(e.factor_series[f.factor]);
+        if (sp) foot.append(sp);
+        tiles.append(el("div", { class: "tile" + (empty ? " empty" : "") }, [
+          el("div", { class: "tile-group", text: f.group }),
+          el("div", { class: "tile-label" }, [el("span", { text: f.label }), el("span", { text: empty ? "" : shortQ(f.fiscal_quarter) })]),
+          el("div", { class: "tile-value num", text: empty ? "No data" : v }),
+          el("div", { class: "tile-desc", text: f.description }),
+          foot,
+        ]));
+      });
+      host.append(tiles);
+    }
+    if (planned.length) {
+      const strip = el("div", { class: "planned-strip" }, [el("strong", { text: "Planned signals" })]);
+      planned.forEach((f) => strip.append(chip(f.label + " (" + f.group.toLowerCase() + ")")));
+      strip.append(el("span", { text: "Each needs its source adapter built first. See Coverage and sources." }));
+      host.append(strip);
+    }
+  }
+
+  // ---------- chart scaffolding
+  function niceTicks(lo, hi, count) {
+    const span = hi - lo || 1, step0 = span / count, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+    const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => span / s <= count) || 10 * mag;
+    const t = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(10));
+    return t;
+  }
+  function frame(host, width, height, m) {
+    const s = svg("svg", { class: "plot", viewBox: `0 0 ${width} ${height}`, width: "100%", role: "img" });
+    host.append(s);
+    return { s, x0: m.l, x1: width - m.r, y0: m.t, y1: height - m.b, width, height };
+  }
+  function bandX(f, n) {
+    const step = (f.x1 - f.x0) / n;
+    return { step, center: (i) => f.x0 + step * (i + 0.5) };
+  }
+  function yScale(f, lo, hi) {
+    return (v) => f.y1 - ((v - lo) / (hi - lo)) * (f.y1 - f.y0);
+  }
+  function gridY(f, ticks, y, fmt) {
+    ticks.forEach((t) => {
+      f.s.append(svg("line", { class: "grid", x1: f.x0, x2: f.x1, y1: y(t), y2: y(t) }));
+      const tx = svg("text", { x: f.x0 - 8, y: y(t) + 4, "text-anchor": "end" });
+      tx.textContent = fmt(t);
+      f.s.append(tx);
+    });
+  }
+  function xLabels(f, labels, bx) {
+    const every = Math.max(1, Math.ceil(labels.length / Math.max(1, Math.floor((f.x1 - f.x0) / 54))));
+    labels.forEach((q, i) => {
+      if ((labels.length - 1 - i) % every) return;
+      const t = svg("text", { x: bx.center(i), y: f.y1 + 16, "text-anchor": "middle" });
+      t.textContent = shortQ(q);
+      f.s.append(t);
+    });
+  }
+  function barPath(x, w, yBase, yEnd) {
+    // 4px rounded data-end, square at the baseline
+    const up = yEnd < yBase, h = Math.abs(yEnd - yBase), r = Math.min(4, h, w / 2);
+    if (h < 0.5) return "";
+    if (up) return `M${x},${yBase}V${yEnd + r}Q${x},${yEnd} ${x + r},${yEnd}H${x + w - r}Q${x + w},${yEnd} ${x + w},${yEnd + r}V${yBase}Z`;
+    return `M${x},${yBase}V${yEnd - r}Q${x},${yEnd} ${x + r},${yEnd}H${x + w - r}Q${x + w},${yEnd} ${x + w},${yEnd - r}V${yBase}Z`;
+  }
+
+  // Tooltip + hover bands shared by the charts
+  function attachHover(card, svgs, n, bandsFor, html) {
+    const tip = el("div", { class: "tooltip", hidden: "" });
+    card.append(tip);
+    svgs.forEach((f) => {
+      const bx = bandsFor(f);
+      const hl = svg("rect", { x: 0, y: f.y0, width: bx.step, height: f.y1 - f.y0, fill: "var(--accent)", opacity: 0, "pointer-events": "none" });
+      f.s.insertBefore(hl, f.s.firstChild);
+      f.hl = hl;
+      for (let i = 0; i < n; i++) {
+        const hit = svg("rect", { x: bx.center(i) - bx.step / 2, y: f.y0, width: bx.step, height: f.y1 - f.y0, fill: "transparent", tabindex: "0", "aria-label": "Quarter detail" });
+        const show = (ev) => {
+          svgs.forEach((g) => { const b = bandsFor(g); g.hl.setAttribute("x", b.center(i) - b.step / 2); g.hl.setAttribute("opacity", 0.07); });
+          tip.innerHTML = html(i);
+          tip.hidden = false;
+          const cr = card.getBoundingClientRect();
+          const sr = f.s.getBoundingClientRect();
+          const scale = sr.width / f.width;
+          let left = sr.left - cr.left + bx.center(i) * scale + 14;
+          const tw = tip.offsetWidth;
+          if (left + tw > cr.width - 8) left = sr.left - cr.left + bx.center(i) * scale - tw - 14;
+          tip.style.left = Math.max(8, left) + "px";
+          tip.style.top = Math.max(8, sr.top - cr.top + 8) + "px";
+        };
+        const hide = () => { tip.hidden = true; svgs.forEach((g) => g.hl.setAttribute("opacity", 0)); };
+        hit.addEventListener("mouseenter", show);
+        hit.addEventListener("focus", show);
+        hit.addEventListener("mouseleave", hide);
+        hit.addEventListener("blur", hide);
+        f.s.append(hit);
+      }
+    });
+  }
+  const trow = (k, v) => `<div class="row"><span>${k}</span><span>${v}</span></div>`;
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  // ---------- tone chart
+  function renderTone(e) {
+    const card = $("chart-tone");
+    card.replaceChildren();
+    const Q = e.quarters.filter((q) => q.history_status !== undefined);
+    const hasTone = Q.some((q) => isNum(q.composite_mean_tone));
+    $("table-tone").replaceChildren();
+    $("table-tone").closest("details").hidden = !hasTone;
+    if (!hasTone) {
+      card.append(emptyState("No reviews on file yet", `Collect them with <code>python scripts/weekly_drop.py --refresh --ticker ${esc(e.ticker)}</code>. It needs <code>APIFY_TOKEN</code> and <code>SEC_USER_AGENT</code> set, and network access to api.apify.com and data.sec.gov.`));
+      return;
+    }
+    card.append(el("div", { class: "legend" }, [
+      el("span", {}, [el("i", { class: "key-line", style: "background:var(--pos)" }), "Mean tone"]),
+      el("span", {}, [el("i", { class: "key-line", style: "background:var(--ref)" }), "Prior-4-quarter baseline"]),
+      el("span", {}, [el("i", { class: "key-ring" }), "Sparse, truncated or in progress"]),
+    ]));
+    const W = Math.max(320, card.clientWidth - 32);
+    const m = { l: 44, r: 12, t: 10, b: 8 };
+    const n = Q.length;
+    const tones = Q.map((q) => q.composite_mean_tone).filter(isNum);
+    const base = Q.map((q) => (isNum(q.composite_tone_delta) ? q.composite_mean_tone - q.composite_tone_delta : null));
+    const lo = Math.max(-2, Math.floor((Math.min(0, ...tones, ...base.filter(isNum)) - 0.1) * 2) / 2);
+    const hi = Math.min(2, Math.ceil((Math.max(...tones, ...base.filter(isNum)) + 0.1) * 2) / 2);
+    const f = frame(card, W, 230, m);
+    const y = yScale(f, lo, hi);
+    const bx = bandX(f, n);
+    gridY(f, niceTicks(lo, hi, 5), y, (t) => fmtSigned(t, 1));
+    f.s.append(svg("line", { class: "axis", x1: f.x0, x2: f.x1, y1: y(0), y2: y(0) }));
+    const line = (vals, color) => {
+      let d = "", pen = false;
+      vals.forEach((v, i) => { if (isNum(v)) { d += (pen ? "L" : "M") + bx.center(i).toFixed(1) + " " + y(v).toFixed(1); pen = true; } else pen = false; });
+      if (d) f.s.append(svg("path", { d, fill: "none", stroke: color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    };
+    line(base, "var(--ref)");
+    line(Q.map((q) => q.composite_mean_tone), "var(--pos)");
+    Q.forEach((q, i) => {
+      if (!isNum(q.composite_mean_tone)) return;
+      const usable = q.history_status === "ok" || q.history_status === "no_baseline";
+      f.s.append(svg("circle", { cx: bx.center(i), cy: y(q.composite_mean_tone), r: usable ? 5 : 4.5, fill: usable ? "var(--pos)" : "var(--panel)", stroke: usable ? "var(--panel)" : "var(--pos)", "stroke-width": 2 }));
+    });
+    const last = Q.map((q, i) => [q, i]).filter(([q]) => isNum(q.composite_mean_tone)).pop();
+    if (last) {
+      const t = svg("text", { x: Math.min(bx.center(last[1]) + 8, f.x1 - 2), y: y(last[0].composite_mean_tone) - 10, "text-anchor": "end", style: "fill:var(--ink);font-weight:600" });
+      t.textContent = fmtSigned(last[0].composite_mean_tone);
+      f.s.append(t);
+    }
+    // review counts: second panel, own scale
+    card.append(el("div", { class: "panel-label", text: "Reviews per quarter (sparse below " + DATA.model.sparse_min_reviews + ")" }));
+    const g = frame(card, W, 96, { l: 44, r: 12, t: 6, b: 24 });
+    const maxN = Math.max(DATA.model.sparse_min_reviews, ...Q.map((q) => q.n_reviews || 0));
+    const yc = yScale(g, 0, maxN);
+    const bg = bandX(g, n);
+    gridY(g, niceTicks(0, maxN, 2), yc, (t) => (t >= 1000 ? t / 1000 + "K" : String(t)));
+    const bw = Math.min(24, bg.step * 0.62);
+    Q.forEach((q, i) => {
+      const d = barPath(bg.center(i) - bw / 2, bw, yc(0), yc(q.n_reviews || 0));
+      if (d) g.s.append(svg("path", { d, fill: q.n_reviews < DATA.model.sparse_min_reviews ? "var(--warn-mark)" : "var(--count)" }));
+    });
+    g.s.append(svg("line", { class: "ref", x1: g.x0, x2: g.x1, y1: yc(DATA.model.sparse_min_reviews), y2: yc(DATA.model.sparse_min_reviews) }));
+    g.s.append(svg("line", { class: "axis", x1: g.x0, x2: g.x1, y1: yc(0), y2: yc(0) }));
+    xLabels(g, Q.map((q) => q.fiscal_quarter), bg);
+    attachHover(card, [f, g], n, (fr) => bandX(fr, n), (i) => {
+      const q = Q[i];
+      return `<b>${esc(q.fiscal_quarter)}</b>` + trow("Mean tone", fmtSigned(q.composite_mean_tone)) + trow("Baseline", fmtSigned(base[i])) + trow("Difference", fmtSigned(q.composite_tone_delta)) + trow("Reviews", (q.n_reviews || 0).toLocaleString()) + trow("Status", STATUS_TEXT[q.history_status] || q.history_status);
+    });
+    // table view
+    const tbl = el("table");
+    tbl.append(el("thead", {}, [el("tr", {}, ["Quarter", "Reviews", "Mean tone", "Baseline", "Difference", "Defect", "Quality decline", "Price", "Status"].map((h, k) => el("th", { class: k && k < 8 ? "r" : "", text: h })))]));
+    const tb = el("tbody");
+    Q.forEach((q, i) => tb.append(el("tr", {}, [
+      el("td", { text: q.fiscal_quarter }), el("td", { class: "r", text: (q.n_reviews || 0).toLocaleString() }),
+      el("td", { class: "r", text: fmtSigned(q.composite_mean_tone) }), el("td", { class: "r", text: fmtSigned(base[i]) }),
+      el("td", { class: "r", text: fmtSigned(q.composite_tone_delta) }), el("td", { class: "r", text: fmtPct(q.defect_rate, false) }),
+      el("td", { class: "r", text: fmtPct(q.quality_decline_rate, false) }), el("td", { class: "r", text: fmtPct(q.price_rate, false) }),
+      el("td", { text: STATUS_TEXT[q.history_status] || q.history_status }),
+    ])));
+    tbl.append(tb);
+    $("table-tone").append(tbl);
+  }
+
+  // ---------- lead chart
+  function renderLead(e) {
+    const card = $("chart-lead");
+    card.replaceChildren();
+    const J = e.joined || [];
+    const hasDelta = J.some((r) => isNum(r.composite_tone_delta));
+    if (!hasDelta) {
+      const noRev = !e.revenue.length;
+      card.append(emptyState(
+        "Nothing to compare yet",
+        "This needs at least five usable quarters of reviews (four to form a baseline) and SEC revenue for the quarter after." + (noRev ? " SEC revenue has not been downloaded yet either: <code>weekly_drop.py --refresh</code> fetches it from data.sec.gov." : "")
+      ));
+      return;
+    }
+    const outcomes = {};
+    ((e.backtest && e.backtest.rows) || []).forEach((r) => (outcomes[r.fiscal_quarter] = r));
+    card.append(el("div", { class: "legend" }, [
+      el("span", {}, [el("i", { class: "key-sq", style: "background:var(--neg)" }), "Down: tone ≤ " + RULE.down_threshold + " / growth slowed"]),
+      el("span", {}, [el("i", { class: "key-sq", style: "background:var(--pos)" }), "Up: tone ≥ +" + RULE.up_threshold + " / growth sped up"]),
+      el("span", {}, [el("i", { class: "key-sq", style: "background:var(--neutral-mark)" }), "No-call band (−0.15 to +0.15)"]),
+    ]));
+    const W = Math.max(320, card.clientWidth - 32);
+    const n = J.length;
+    const deltas = J.map((r) => r.composite_tone_delta).filter(isNum);
+    const dl = Math.min(-0.3, Math.min(...deltas) - 0.1), dh = Math.max(0.3, Math.max(...deltas) + 0.1);
+    card.append(el("div", { class: "panel-label", text: "Quarter q: tone minus its baseline" }));
+    const f = frame(card, W, 160, { l: 44, r: 12, t: 8, b: 8 });
+    const y = yScale(f, dl, dh), bx = bandX(f, n);
+    gridY(f, niceTicks(dl, dh, 4), y, (t) => fmtSigned(t, 1));
+    f.s.append(svg("rect", { x: f.x0, width: f.x1 - f.x0, y: y(RULE.up_threshold), height: y(RULE.down_threshold) - y(RULE.up_threshold), fill: "var(--neutral-mark)", opacity: 0.28 }));
+    const bw = Math.min(24, bx.step * 0.62);
+    J.forEach((r, i) => {
+      if (!isNum(r.composite_tone_delta)) return;
+      const v = r.composite_tone_delta;
+      const fill = v <= RULE.down_threshold ? "var(--neg)" : v >= RULE.up_threshold ? "var(--pos)" : "var(--neutral-mark)";
+      const d = barPath(bx.center(i) - bw / 2, bw, y(0), y(v));
+      if (d) f.s.append(svg("path", { d, fill }));
+    });
+    f.s.append(svg("line", { class: "axis", x1: f.x0, x2: f.x1, y1: y(0), y2: y(0) }));
+
+    card.append(el("div", { class: "panel-label", text: "Quarter q+1: change in revenue growth (YoY, percentage points)" }));
+    const accel = J.map((r) => (isNum(r.yoy_accel_next) ? r.yoy_accel_next * 100 : null));
+    const av = accel.filter(isNum);
+    const al = Math.min(-1, ...av) * 1.15, ah = Math.max(1, ...av) * 1.15;
+    const g = frame(card, W, 150, { l: 44, r: 12, t: 8, b: 24 });
+    const yg = yScale(g, al, ah), bg = bandX(g, n);
+    gridY(g, niceTicks(al, ah, 4), yg, (t) => fmtSigned(t, 0));
+    accel.forEach((v, i) => {
+      if (!isNum(v)) {
+        const t = svg("text", { x: bg.center(i), y: yg(0) - 6, "text-anchor": "middle" });
+        t.textContent = "·";
+        g.s.append(t);
+        return;
+      }
+      const d = barPath(bg.center(i) - bw / 2, bw, yg(0), yg(v));
+      if (d) g.s.append(svg("path", { d, fill: v < 0 ? "var(--neg)" : "var(--pos)" }));
+    });
+    g.s.append(svg("line", { class: "axis", x1: g.x0, x2: g.x1, y1: yg(0), y2: yg(0) }));
+    xLabels(g, J.map((r) => r.fiscal_quarter), bg);
+    attachHover(card, [f, g], n, (fr) => bandX(fr, n), (i) => {
+      const r = J[i], o = outcomes[r.fiscal_quarter];
+      return `<b>${esc(r.fiscal_quarter)} → next quarter</b>` + trow("Tone vs baseline", fmtSigned(r.composite_tone_delta)) + trow("Growth change", isNum(r.yoy_accel_next) ? fmtPts(r.yoy_accel_next) : "not reported yet") + (o ? trow("Call", o.call) + trow("Outcome", o.outcome) : trow("In backtest", "no"));
+    });
+  }
+
+  // ---------- backtest
+  function renderBacktest(e) {
+    const rule = $("rule");
+    rule.replaceChildren();
+    const bt = e.backtest;
+    const rc = bt && bt.rule_check;
+    const head = el("div", { class: "rule-head" }, [el("strong", { text: "Pre-registered rule " + RULE.id }), chip("Frozen " + DATA.model.frozen_at)]);
+    if (rc) head.append(rc.matches ? chip("Hash matches", "good", "check") : chip("Rule changed after freezing", "bad", "warn"));
+    rule.append(head);
+    const dl = el("dl");
+    [["Question", RULE.question], ["Signal", RULE.signal], ["Call", `DOWN if tone moved ${RULE.down_threshold} or less; UP if +${RULE.up_threshold} or more; otherwise no call.`], ["Scored against", RULE.primary_target], ["Holdout", RULE.holdout_selection], ["No fitting", RULE.no_fitting]].forEach(([k, v]) => {
+      dl.append(el("dt", { text: k }), el("dd", { text: v }));
+    });
+    rule.append(dl, el("p", { class: "note" }, ["SHA-256 ", el("code", { text: DATA.model.frozen_sha256 })]));
+
+    const body = $("bt-body");
+    body.replaceChildren();
+    if (!bt) { body.append(emptyState("Backtest not run", "Run <code>python scripts/weekly_drop.py</code>.")); return; }
+    const stats = el("div", { class: "stats" });
+    const stat = (k, v, n) => stats.append(el("div", { class: "stat" }, [el("div", { class: "k", text: k }), el("div", { class: "v num", text: v }), n ? el("div", { class: "n", text: n }) : null]));
+    stat("Quarters evaluated", bt.evaluated + " of " + bt.required, bt.insufficient ? "Insufficient history" : "Complete holdout");
+    stat("Hits", bt.calls ? bt.hits + " of " + bt.calls : "—", bt.no_calls ? bt.no_calls + " no-call quarter" + (bt.no_calls > 1 ? "s" : "") : null);
+    stat("Hit rate", bt.hit_rate == null ? "—" : Math.round(bt.hit_rate * 100) + "%", bt.p_value_vs_50 == null ? null : "p = " + bt.p_value_vs_50.toFixed(2) + " vs. a coin flip");
+    stat("Persistence baseline", bt.persistence_scored ? bt.persistence_hits_on_same_calls + " of " + bt.persistence_scored : "—", "Last known growth trend, same quarters");
+    body.append(stats);
+    if (bt.insufficient) {
+      body.append(el("div", { class: "banner", style: "margin-top:12px" }, [el("p", { html: `<strong>INSUFFICIENT HISTORY: ${bt.evaluated} of ${bt.required} quarters.</strong> Missing quarters are not filled in. The rule needs 12 complete, non-sparse quarters of reviews (4 to form the first baseline, then 8 to score) plus the next quarter's SEC revenue.` })]));
+    }
+    if (bt.rows.length) {
+      body.append(el("p", { class: "note", style: "margin-top:12px", text: `With ${bt.calls} calls this test has almost no statistical power. A few lucky or unlucky quarters swing it either way.` }));
+      const outcomeChip = (o) => (o === "HIT" ? chip("Hit", "good", "check") : o === "MISS" ? chip("Miss", "bad", "x") : chip("No call"));
+      const t = el("table");
+      t.append(el("thead", {}, [el("tr", {}, ["Quarter", "Reviews", "Tone vs base", "Call", "Growth q", "Growth q+1", "Next quarter", "Outcome", "Persistence"].map((h, k) => el("th", { class: [1, 2, 4, 5].includes(k) ? "r" : "", text: h })))]));
+      const tb = el("tbody");
+      bt.rows.forEach((r) => {
+        const oc = el("td"); oc.append(outcomeChip(r.outcome));
+        tb.append(el("tr", {}, [el("td", { text: r.fiscal_quarter }), el("td", { class: "r", text: r.n_reviews.toLocaleString() }), el("td", { class: "r", text: fmtSigned(r.tone_delta) }), el("td", { text: r.call }), el("td", { class: "r", text: fmtPct(r.revenue_yoy_q) }), el("td", { class: "r", text: fmtPct(r.revenue_yoy_next) }), el("td", { text: r.actual }), oc, el("td", { text: r.persistence_call })]));
+      });
+      t.append(tb);
+      body.append(el("h3", { text: "Held-out quarters" }), el("div", { class: "table-wrap" }, [t]));
+      const misses = bt.rows.filter((r) => r.outcome === "MISS");
+      body.append(el("h3", { text: "Misses" }));
+      if (misses.length) {
+        const mt = el("table");
+        mt.append(el("thead", {}, [el("tr", {}, ["Quarter", "Call", "Tone vs base", "What revenue did", "Defect", "Quality decline", "Price"].map((h, k) => el("th", { class: k > 1 && k !== 3 ? "r" : "", text: h })))]));
+        const mb = el("tbody");
+        misses.forEach((r) => mb.append(el("tr", {}, [el("td", { text: r.fiscal_quarter }), el("td", { text: r.call }), el("td", { class: "r", text: fmtSigned(r.tone_delta) }), el("td", { text: "growth " + r.actual + " (" + fmtPts(r.yoy_accel_next) + ")" }), el("td", { class: "r", text: fmtPct(r.defect_rate, false) }), el("td", { class: "r", text: fmtPct(r.quality_decline_rate, false) }), el("td", { class: "r", text: fmtPct(r.price_rate, false) })])));
+        mt.append(mb);
+        body.append(el("div", { class: "table-wrap" }, [mt]));
+      } else body.append(el("p", { class: "note", text: "No misses among the evaluated quarters." }));
+    } else {
+      body.append(el("p", { class: "note", style: "margin-top:12px", text: "No quarter qualifies for scoring yet, so there are no hits or misses to show." }));
+    }
+  }
+
+  // ---------- coverage, sources, revenue
+  function renderCoverage(e) {
+    const host = $("coverage-grid");
+    host.replaceChildren();
+    const sources = Object.keys(e.coverage || {});
+    if (!sources.length) {
+      host.append(emptyState("No quarters on file", "Coverage appears here once reviews are collected. Each square is one fiscal quarter, colored by whether it can be used."));
+    } else {
+      const order = ["ok", "no_baseline", "sparse", "truncated", "partial_quarter"];
+      host.append(el("div", { class: "legend" }, order.map((s) => el("span", {}, [el("i", { class: "key-sq st-" + s }), STATUS_TEXT[s]]))));
+      const cov = el("div", { class: "cov" });
+      sources.forEach((s) => {
+        const cells = el("div", { class: "cov-cells" });
+        e.coverage[s].forEach((c) => cells.append(el("span", { class: "cov-cell st-" + c.history_status, title: `${c.fiscal_quarter}: ${STATUS_TEXT[c.history_status]} (${c.n_reviews} reviews)`, role: "img", "aria-label": `${c.fiscal_quarter}: ${STATUS_TEXT[c.history_status]}` })));
+        cov.append(el("div", { class: "cov-row" }, [el("div", { class: "cov-name", text: s }), cells]));
+      });
+      host.append(cov);
+      const first = e.coverage[sources[0]];
+      host.append(el("p", { class: "note", style: "margin-top:8px", text: `${shortQ(first[0].fiscal_quarter)} to ${shortQ(first[first.length - 1].fiscal_quarter)}, oldest on the left. Hover a square for its quarter.` }));
+    }
+    const srcHost = $("sources");
+    srcHost.replaceChildren();
+    e.sources.forEach((s) => {
+      srcHost.append(el("div", { class: "source" + (s.status === "planned" ? " planned" : "") }, [
+        el("div", { class: "source-head" }, [el("strong", { text: s.name.replace(/_/g, " ") }), s.status === "active" ? chip("Active", "accent", "dot") : chip("Planned")]),
+        el("p", { text: s.description }),
+      ]));
+    });
+    srcHost.append(el("div", { class: "source" }, [
+      el("div", { class: "source-head" }, [el("strong", { text: "SEC EDGAR" }), chip("Active", "accent", "dot")]),
+      el("p", { text: "Quarterly revenue from XBRL companyfacts; the first-filed value for each quarter. Fiscal Q4 is the annual figure minus Q1 to Q3." }),
+    ]));
+    const rh = $("revenue-table");
+    rh.replaceChildren();
+    if (!e.revenue.length) {
+      rh.append(emptyState("Not downloaded yet", `Run <code>python scripts/weekly_drop.py --refresh --ticker ${esc(e.ticker)}</code> with <code>SEC_USER_AGENT</code> set to your name and email, as SEC's fair-access policy requires.`));
+      return;
+    }
+    const t = el("table");
+    t.append(el("thead", {}, [el("tr", {}, ["Quarter", "Revenue", "YoY", "Filed", "Note", "Filing"].map((h, k) => el("th", { class: k === 1 || k === 2 ? "r" : "", text: h })))]));
+    const tb = el("tbody");
+    e.revenue.slice().reverse().slice(0, 10).forEach((r) => {
+      const link = el("td");
+      if (r.filing_url && !e.synthetic) link.append(el("a", { href: r.filing_url, target: "_blank", rel: "noopener", text: "EDGAR" }));
+      else link.textContent = e.synthetic ? "synthetic" : "—";
+      tb.append(el("tr", {}, [el("td", { text: r.fiscal_quarter }), el("td", { class: "r", text: fmtUSD(r.revenue_usd) }), el("td", { class: "r", text: fmtPct(r.revenue_yoy) }), el("td", { text: r.filed || "—" }), el("td", { text: r.derived_q4 ? "Q4 derived" : "" }), link]));
+    });
+    t.append(tb);
+    rh.append(el("div", { class: "table-wrap" }, [t]));
+  }
+
+  // ---------- method
+  function renderMethod(e) {
+    const m = $("method-text");
+    m.replaceChildren();
+    m.append(
+      el("h3", { style: "margin-top:0", text: "How a quarter gets its number" }),
+      el("p", { text: "Reviews from each source are scored from −2 to +2 by a fixed model: VADER sentiment on the title and text, averaged with the star rating. Each review is also tagged for defects, quality decline, price, and seller or shipping problems. Seller-and-shipping-only reviews are counted separately and kept out of product tone." }),
+      el("p", { text: `A quarter is usable when it has at least ${DATA.model.sparse_min_reviews} product reviews across at least ${DATA.model.sparse_min_products} products, the quarter has ended, and no source's result cap cut it short. Each usable quarter is compared with the average of its previous four.` }),
+      el("h3", { text: "Is this company a good fit?" }),
+      el("p", { text: e.fit_note }),
+      el("h3", { text: "Fiscal calendar" }),
+      el("p", { text: e.fiscal_calendar_note })
+    );
+    if (e.references && e.references.length) {
+      const ul = el("ul");
+      e.references.forEach((r) => ul.append(el("li", {}, [r.fact + ". ", el("a", { href: r.url, target: "_blank", rel: "noopener", text: "Source" })])));
+      m.append(el("h3", { text: "Sources checked" }), ul);
+    }
+    const lim = $("limits");
+    lim.replaceChildren();
+    DATA.limitations.forEach((t) => {
+      const li = el("li");
+      const mt = t.match(/^\*\*(.+?)\*\*\s*(.*)$/);
+      if (mt) li.append(el("b", { text: mt[1] }), " " + mt[2]);
+      else li.textContent = t;
+      lim.append(li);
+    });
+    $("footer").replaceChildren(
+      el("div", { text: "Research only. Not financial advice and not a trading system. Raw review text stays on the machine that collected it; this page holds aggregates only." }),
+      el("div", { text: `Built ${DATA.generated_at.replace("T", " ").replace("+00:00", " UTC")} · data as of ${DATA.as_of} · tone model ${DATA.model.version}` })
+    );
+  }
+
+  function render() {
+    const e = ENTRIES.find((x) => keyOf(x) === current) || ENTRIES[0];
+    renderPicker();
+    renderHeader(e);
+    renderFactors(e);
+    renderTone(e);
+    renderLead(e);
+    renderBacktest(e);
+    renderCoverage(e);
+    renderMethod(e);
+  }
+
+  current = chooseInitial();
+  render();
+  let lastW = document.body.clientWidth, timer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (Math.abs(document.body.clientWidth - lastW) < 8) return;
+      lastW = document.body.clientWidth;
+      const e = ENTRIES.find((x) => keyOf(x) === current);
+      renderTone(e);
+      renderLead(e);
+    }, 120);
+  });
+  window.addEventListener("hashchange", () => {
+    const k = location.hash.replace("#", "").toLowerCase();
+    if (k !== current && ENTRIES.some((e) => keyOf(e) === k)) { current = k; render(); }
+  });
+})();
+</script>

@@ -1,0 +1,14 @@
+ticker,fiscal_quarter,factor,label,group,value,zscore,status,unit,better,description
+NKE,,product_tone,Product tone,Reviews,,,not_collected,score,higher,Mean review tone on a -2..+2 scale; seller/shipping-only reviews excluded.
+NKE,,tone_delta,Tone vs. own baseline,Reviews,,,not_collected,score,higher,This quarter's tone minus the mean of the prior four quarters. The pre-registered signal.
+NKE,,review_velocity,Review velocity,Demand,,,not_collected,pct,higher,Review count vs. the same quarter a year earlier. A rough proxy for units sold.
+NKE,,defect_rate,Defect mentions,Quality,,,not_collected,pct,lower,"Share of reviews describing failures: stopped working, broke, defective, disconnects."
+NKE,,quality_decline_rate,Quality-decline mentions,Quality,,,not_collected,pct,lower,Share of reviews comparing unfavourably with an earlier version or model.
+NKE,,price_rate,Price mentions,Value,,,not_collected,pct,neutral,"Share of reviews that talk about price or value, for better or worse."
+NKE,,seller_shipping_share,Seller/shipping complaints,Channel,,,not_collected,pct,lower,"Share of reviews only about delivery, packaging or the seller."
+NKE,,revenue_yoy,Revenue growth,Financials,,,not_collected,pct,higher,SEC-reported revenue vs. the same fiscal quarter a year earlier.
+NKE,,revenue_accel,Revenue growth acceleration,Financials,,,not_collected,pts,higher,Change in YoY growth from the previous quarter.
+NKE,,reddit_tone,Reddit tone,Community,,,planned,,,Tone of brand and product posts and comments. Planned source: reddit.
+NKE,,reddit_volume,Reddit mention volume,Community,,,planned,,,Posts and comments mentioning the brand or flagship products. Planned source: reddit.
+NKE,,search_interest,Search interest,Demand,,,planned,,,Google Trends interest for brand and flagship products. Planned source: google_trends.
+NKE,,app_rating,App-store rating,Experience,,,planned,,,Average new rating of the company's apps. Planned source: app_store.
